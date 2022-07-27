@@ -3,8 +3,8 @@ const debugging = false;
 const fs = require('fs');
 const http = require('http');
 eval(fs.readFileSync(__dirname + '/utils.js')+'');
-eval(fs.readFileSync(__dirname + '/eduDomainData.js')+'');
-eval(fs.readFileSync(__dirname + '/data/data.js')+'');
+//eval(fs.readFileSync(__dirname + '/eduDomainData.js')+'');
+eval(fs.readFileSync(__dirname + '/data.js')+'');
 
 //  Begin Scraper Data.
 const AI_TITLES = ["AI VP", "AI Data", "AI Engineer", "AI Developer", "AI Programmer", "AI Scientist", "AI Investor", "AI Manger", "AI Senior", "AI Lead", 
@@ -283,23 +283,20 @@ function initilizeData() {
   //let companies = us1000.concat(eu1000,ap500);
 
   let companies = companiesByIndustry("automotive");
-  //console.log(companies.length);
-  companies = companies.filter(company => parseInt(company.current_headcount,0) > 25);
-  //console.log(companies.length);
-  let names = [];
-  companies.forEach((company) => {
-    names.push(company.name);
-  })
+  //companies = companies.filter(company => parseInt(company.current_headcount,0) > 25);
+  //let names = [];
+  //companies.forEach((company) => {
+  //  names.push(company.name);
+  //})
 
-  names.forEach((name) => {
-    if(name.split(" ").length > 5)
-    {
-      name = name.split(" ").splice(0,5).join(" ");
-    }
-  });
+  //names.forEach((name) => {
+  //  if(name.split(" ").length > 5)
+  //  {
+  //    name = name.split(" ").splice(0,5).join(" ");
+  //  }
+  //});
 
-  //console.log(names);
-
+  let names = ["ibm","cisco","oracle","microsoft"];
   let titles = [...JOB_GROUPS];
 
   let topics = ['("artificial intelligence" OR "machine learning" OR "computer vision")', '("deep learning" OR "natural language processing" OR "big data")'];

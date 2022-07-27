@@ -1,4 +1,9 @@
-const debugging = 1;
+const { table } = require('console');
+const fs = require('fs');
+const LINE_READER = require('line-reader');
+
+
+const debugging = 0;
 
 
 /** returns a object that contains a bunch of data arrays. */
@@ -77,22 +82,149 @@ const LARGEST_AUSTRALIAN_CITIES = ["Sydney","Melbourne","Brisbane","Perth","Adel
 
 const INDUSTRIES = ['software','automotive', 'biotechnology','ecommerce', 'healthcare','agriculture'];
 
-const AI_DOMAINS = ["apple.com","aeye.com","algorithmia.com","ailmotive.com","amazon.com","digitaldreamlabs.com","appier.com","argo.ai","atomwise.com","automat.ai",
-        "automationanywhere.com","ayasdi.com","bloomreach.com","bluerivertechnology.com","microsoft.com","butterflynetwork.com","capeanalytics.com","casetext.com",
-        "cerebras.net","clarifai","cloudminds.com","cognitivescale.com","conversica.com","c3.ai","cyclicarx.com","blackberry.com","dataiku.com","dataminr.com",
-        "datarobot.com","deepmind.com","descarteslabs.com","digitalgenius.com","drawbridge.com","linkedin.com","elementai.com","faceplusplus.com","fido.ai",
-        "appen.com","fractal.ai","freenome.com","google.com","graphcore.ai","h2O.ai","ibm.com","insidesales.com","insilico.com","integrate.ai","iris-automation.com",
-        "huma.com","kasisto.com","leapmind.io","lemonade.com","medopad.com","mindmeld.com","narrativescience.com","nauto.com","neurala.com","getnexar.com",
-        "verint.com","aptiv.com","obsidiansecurity.com","oneconcern.com","onfido.com","orbitalinsight.com","owkin.com","perimeterx.com","persado.com","petuum.com",
-        "pony.ai","precisionhawk.com","rapidminer.com","redpoints.com","salesforce.com","seamless.ai","sensely.com","sensetime.com","sentient.io","sentientai.com",
-        "sherpa.ai","shift-technology.com","sift.com","soundhound.com","sparkcognition.com","sportlogiq.com","tableau.com","tamr.com","tempus.com","relativity.com",
-        "trifacta.com","pragma.com","uipath.com","veritone.com","esentire.com","vicarious.com","vidado.ai","visenze.com","workfusion.com","yitutech.com",
-        "nanox.vision","zest.ai","zoox.com","zymergen.com"];
+const AI_DOMAINS = ["apple.com","aeye.com","algorithmia.com","aimotive.com","amazon.com","digitaldreamlabs.com","appier.com","argo.ai","atomwise.com","automat.ai",
+"automationanywhere.com","ayasdi.com","bloomreach.com","bluerivertechnology.com","microsoft.com","butterflynetwork.com","capeanalytics.com","casetext.com",
+"cerebras.net","clarifai","cloudminds.com","cognitivescale.com","conversica.com","c3.ai","cyclicarx.com","blackberry.com","dataiku.com","dataminr.com",
+"datarobot.com","deepmind.com","descarteslabs.com","digitalgenius.com","drawbridge.com","linkedin.com","elementai.com","faceplusplus.com","fido.ai",
+"appen.com","fractal.ai","freenome.com","google.com","graphcore.ai","h2O.ai","ibm.com","insidesales.com","insilico.com","integrate.ai","iris-automation.com",
+"huma.com","kasisto.com","leapmind.io","lemonade.com","medopad.com","mindmeld.com","narrativescience.com","nauto.com","neurala.com","getnexar.com",
+"verint.com","aptiv.com","obsidiansecurity.com","oneconcern.com","onfido.com","orbitalinsight.com","owkin.com","perimeterx.com","persado.com","petuum.com",
+"pony.ai","precisionhawk.com","rapidminer.com","redpoints.com","salesforce.com","seamless.ai","sensely.com","sensetime.com","sentient.io","sentientai.com",
+"sherpa.ai","shift-technology.com","sift.com","soundhound.com","sparkcognition.com","sportlogiq.com","tableau.com","tamr.com","tempus.com","relativity.com",
+"trifacta.com","pragma.com","uipath.com","veritone.com","esentire.com","vicarious.com","vidado.ai","visenze.com","workfusion.com","yitutech.com",
+"nanox.vision","zest.ai","zoox.com","zymergen.com",'zuru.ai','zoundream.com','zoox.com','zignallabs.com','zibra.ai','zegami.com','xccelerate.co','deloitte.com',
+'deloitte.com','zoho.com','zineone.com','zillow.com','zensar.com','zebra-med.com','worldbank.org','wordspath.com','wizeline.com','wiz.ai','wipro.com',
+'winwire.com','whetstone.ai','welocalize.com','vw.com','voxelmaps.com','voix.ai','vinsys.com','vicarioussurgical.com','veritone.com','verint.com',
+'venconsolutions.com','vedadata.com','valeo.com','vale.com','upgrad.com','uniphore.com','unilever.com','uhc.com','uchicago.edu','tum-ai.com','truthset.io',
+'tricentis.com','tri.global','transperfect.com','tooploox.com','ti8m.com','thoughtexchange.com','thebimengineers.com','the-mtc.org','tenz.ai','tempus.com',
+'telusinternational.com','techmahindra.com','tcs.com','tcl.com','tataelxsi.com','talentica.com','szjialan.com','sysmex-europe.com','syngenta.com','syglass.io',
+'svi.edu.au','sutherlandglobal.com','supportlogic.io','suki.ai','sterblue.com','stellaautomotive.com','sprinklr.com','soundhound.com','sorcero.com',
+'softbankrobotics.com','sofiasalud.com','soco.ai','smartia.tech','signifyd.com','signaturescience.com','sigma-alimentos.com','siemens.com','siemens-healthineers.com',
+'sharecare.com','shaip.com','sgsinc.net','sgs.com','sensetime.com','sensely.com','sensat.co','schaeffler.com','sas.com','sap.com','samyak.com','samsungsds.com',
+'samsungsds.com','samsung.com','samespace.com','sama.com','rws.com','rootstrap.com','rolls-royce.com','ringcentral.com','rgare.com','rev.com','remedyhealthmedia.com',
+'recogn.ai','rappi.com.mx','rapidai.com','radii.sg','qualcomm.com','qlarityimaging.com','pypestream.com','pymetrics.ai','preferred.jp','posh.tech','pinterest.com',
+'pharmacity.vn','persistent.com','persado.com','perceptiveautomata.com','pepsico.com','palexy.com','orb-data.com','orange.es','oracle.com','ontotext.com',
+'omniaz.io','oculus.com','nvidia.com','nuro.ai','nuro.ai','numerator.com','nuance.com','nuance.com','nrf.gov.sg','novartis.com','nissan-global.com',
+'nice.com','neweraai.com','nestle.com','neatcommerce.com','nauto.com','natcen.ac.uk','nashtechglobal.com','nanox.vision','mulesoft.com','monex.com.mx',
+'moh.gov.sa','mldataocean.com','mindsay.com','mile.cloud','microsoft.com','michaelpage.com','medcase.health','mckinsey.com','mcgowantranscriptions.co.uk',
+'maxar.com','massgeneral.org','marlabs.com','manpowergroup.com.mx','magicdatatech.com','lydia.ai','logicmonitor.com','liveperson.com','linkedin.com','linkedin.com',
+'linkedin.com','leidos.com','legato.com','languagescientific.com','lala.com.mx','laion.ai','kyndryl.com','kriptos.io','konux.com','kmlvision.com','kitware.com',
+'kensho.com','kena.ai','juristat.com','jpmorganchase.com','jpl.jobs','jobhopin.com','jnj.com','jampp.com','itau.com','ishir.com','ironsystems.com','iqvia.com',
+'involve.ai','intuitionrobotics.com','interactions.com','intelliway.com.br','innotech.co.jp','infosearchbpo.com','improbable.io','impendianalytics.com','idexcel.com',
+'icertis.com','ibm.com','ibm.com','hyperlinkinfosystem.com','hikrobotics.com','healius.com.au','haptik.ai','gruposalinas.com','grupogigante.com.mx','groove-x.com',
+'grammarly.com','gnp.com.mx','globalvoices.com','globalizationpartners.com','gep.com','geotab.com','genmab.com','genesys.com','genesys.com','generalblockchain.com',
+'geekplus.com','gaiadesign.com.mx','freenome.com','freed.group','focusfwd.com','flatworldsolutions.com','five9.com','filament.ai','fidelity.com','exo-metrics.com',
+'evolution.ai','ericsson.com','epicgames.com','enterprisebot.ai','elpuertodeliverpool.mx','electrifai.net','effectiff.com','edgetier.com','edgecase.ai','ecinnovations.com',
+'dynata.com','dnsfilter.com','dixa.com','disperse.io','dialpad.com','dell.com','defined.ai','deepset.ai','deepen.ai','deepc.ai','deepbrainai.io','deacero.com',
+'datatobiz.com','datatang.ai','datarobot.com','datapure.co','datalabeler.com','dataart.com','cygnet-infotech.com','cspsolutions.com','crestdatasys.com','createcareers.com.au',
+'crayondata.com','cpall.co.th','coverahealth.com','coppel.com','conxai.com','conversationdesigninstitute.com','continental.com','concentrix.com','commonwealthcarealliance.org',
+'colgatepalmolive.com.mx','cognizant.com','cognigy.com','cognicor.com','cogitotech.com','clustertech.com','cloudminds.com','clarabridge.com','circulohealth.com',
+'choiceworx.com','cemex.com','casepoint.com','capillarytech.com','capestart.com','calyx.ai','builder.ai','bridgewell.com','botsify.com','boost.ai','bmwgroup.com',
+'bix-tech.com','biomatterdesigns.com','binah.ai','beyondanalysis.info','benevolent.com','bbva.mx','banorte.com','banamex.com','automationanywhere.com','atomwise.com',
+'ateliersai.com','astrazeneca.com','ascentregtech.com','asapp.com','argo.ai','aquabyte.ai','aptiv.com','apple.com','anomalo.com','anomalo.com','annotateit.com',
+'ampol.com.au','americamovil.com','althea-group.com','alten.com','altada.com','alpha-sense.com','almuradgroup.com','algolia.com','aivo.co','aitomatic.com','airudder.com',
+'airbus.com','aims.ai','aigora.de','aidlab.hk','aidatainnovations.com','aicrowd.com','aicra.org','ai.sony','ai.se','ai-ms.com','aeye.ai','adec-innovations.com',
+'ada.cx','acusis.com','active.ai','accenture.com','accenture.com','accenture.com','accenture.com','aboutschwab.com','abbott.com','a-star.edu.sg','a-star.edu.sg',
+'8x8.com','3m.com','247.ai','woebothealth.com','willdom.com','whereismytransport.com','waymo.com','waverleysoftware.com','waabi.ai','vtcc.vn','viso.ai','vintra.io',
+'verbit.ai','velodynelidar.com','us.eisai.com','urbint.com','upfield.com','ubiai.tools','twoimpulse.com','tryolabs.com','trigma.com','tri.global','towardsai.net',
+'titanx.ai','tissini.com','tion - Website','thewaltdisneycompany.com','thelevel.ai','thehive.ai','terstock.com','tec.mx','taiger.com','t.com','symphonyhealth.com','symbl.ai',
+'sutrixgroup.com','super.ai','sunix.in','summalinguae.com','successkpi.com','stpc.ai','stermedia.ai','social.abb','silo.ai','sigmoidal.io','sift.com','se.biz',
+'scribe.com','s.com','riskified.com','revolveai.com','resumepuppy.com','refraction.ai','recursiveai.co.jp','rdassetmanagement.com','precysecodingsolutions.com',
+'policybazaar.com','playment.io','plainsight.ai','picnichealth.com','phrasee.co','people.ai','osai.ai','orbit.health','optellum.com','omdena.com',
+'oecd.ai','objectcomputing.com','nubank.com.br','ntechlab.com','nrglab.asia','nnaisense.com','nexocode.com','nearshore.perficient.com','mvetec.com','multilingualconnections.com',
+'mty.ai','motional.com','mostly.ai','moove-it.com','momo.vn','mobike.com','mobidev.biz','missiontranslate.com','mindy-support.com','measurable.ai','mabe.cc',
+'lxt.ai','loconav.com','linguistixtank.com','lilt.com','lightyear.one','landing.ai','kore.ai','konverge.ai','kodiak.ai','kili-technology.com','keyreply.com','kata.ai',
+'karakuri.mx','kama.ai','jina.ai','io','intetics.com','intersog.com','Intelligence Inspection Limited','integrio.net','insurify.com','innodata.com','ineuron.ai','indatalabs.com',
+'inbvesthk.gov.hk','improveandgo.com','imerit.net','imedx.com','iflytek.com','hqsoftwarelab.com','hotmart.com','hotg.ai','hospitalonmobile.com','home.kpmg','hexaware.com',
+'heligate.com.vn','hatchworks.com','h2o.ai','grupobimbo.com','lazada.com','bureauveritas.com','gridpredict.jp','axon.com','geopi.pe','foxglove.dev','flo.health',
+'fireflies.ai','feedzai.com','facil.ai','eyris.io','evam.com','emagevisionpl.com','e.ai','dualbootpartners.com','dmetrics.com','digitate.com','digitalinsights.qiagen.com',
+'digital-nirvana.com','diffco.us','dida.do','delvi.tech','deepxhub.com','deeperinsights.com','deep6.ai','dayta.ai','datatonic.com','dataloop.ai','datalab-munich.com',
+'Dataiku.com','databricks.com','cyracom.com','curiousthing.io','creative-ai.tech','converseon.com','coca-colafemsa.com','cloud.google.com','clip.mx','clario.com',
+'cinnamon.is','cherre.com','cccis.com','cccis.com','cariad.technology','careers.sportsbet.com.au','c3dti.ai','builtin.com','buddi.ai','broutonlab.com','bridgei2i.com',
+'book.com, https:','blueoceans.ai','bitso.com','bigvision.ai','bbva.csod.com','bal.com','avantusfederal.com','avaamo.ai','authid.ai','aurora.tech','audiotranscriptioncenter.com',
+'atos.net','atonarp.com','arturo.ai','arevo.com','app.spare5.com','anotherbrain.ai','amplify.ai','amantyatech.com','aitouch.in','aisuperior.com','aisera.com',
+        'aimultiple.com','aimotive.com','aimexico.org','ai-tech.io','afry.com','achievion.com','4dmedical.com'];
+
+const MORE_DOMAINS = ["walmart.com","amazon.com","apple.com","cvshealth.com","unitedhealthgroup.co","berkshirehathaway.com","mckesson.com","amerisourcebergen.com","alphabet.com",
+"corporate.exxonmobil.com","att.com","costco.com","cigna.com","cardinalhealth.com","microsoft.com","walgreensbootsalliance.com","kroger.com","homedepot.com",
+"jpmorganchase.com","verizon.com","corporate.ford.com","gm.com","anthem.com","centene.com","fanniemae.com","corporate.comcast.com","chevron.com","delltechnologies.com",
+"bankofamerica.com","target.com","lowes.com","marathonpetroleum.com","citigroup.com","fb.com","ups.com","jnj.com","wellsfargo.com","ge.com","joenachbaur.com",
+"intel.com","humana.com","ibm.com","us.pg.com","pepsico.com","fedex.com","metlife.com","freddiemac.com","phillips66.com","lockheedmartin.com","thewaltdisneycompany.com",
+"adm.com","albertsons.co","valero.com","boeing.com","prudential.com","hp.com","rtx.com","stonex.com","goldmansachs.com","sysco.com","morganstanley.com",
+"hcahealthcare.co","cisco.com","corporate.charter.com","merck.com","bestbuy.com","newyorklife.com","abbvie.com","publix.com","allstate.com","libertymutual.co",
+"aig.com","tysonfoods.com","progressive.co","bms.com","nationwide.com","pfizer.com","caterpillar.com","tiaa.org","oracle.com","energytransfer.com","dow.com",
+"americanexpress.com","gd.com","nike.com","northropgrumman.com","usaa.com","deere.com","abbott.com","northwesternmutual.com","dollargeneral.com","exeloncorp.com",
+"coca-cola.com","honeywell.com","thermofisher.com","3m.com","tjx.com","travelers.com","capitalone.com","tesla.com","pmi.com","arrow.com","chsinc.com","jabil.com",
+"enterpriseproducts.com","hpe.com","unfi.com","mondelezinternational.com","viacomcbs.com","kraftheinzcompany.com","dollartree.com","amgen.com","usbank.com","pfgc.com",
+"netflix.com","gilead.com","tdsynnex.com","lilly.com","truist.com","pnc.com","broadcom.com","cbre.com","massmutual.com","qualcomm.com","starbucks.com","duke-energy.co",
+"lainsallamerican.com","usfoods.com","lennar.com","danaher.com","aflac.com","riteaid.com","visa.co","stor.pypl.com","micron.com","carmax.com","salesforce.com",
+"altria.com","lumen.com","bakerhughes.com","internationalpaper.com","thehartford.com","penskeautomotive.com","dupont.com","autonation.com","southernrailway.com",
+"wfscorp.co","drhorton.com","nucor.com","cummins.com"];
+
+const SOCIAL_MEDIA_DOMAINS = ["facebook.com", "twitter.com", "instagram.com", "tiktok.com", "pinterest.com", "youtube.com"]
+
+const NEWS_DOMAINS = ["cnn.com", "msnbc.com", "foxnews.com", "usatoday.com","reuters.com","washingtonpost.com","c-span.org","weather.com","ap.org","bloomberg.com",
+  "forbes.com", "theatlantic.com", "wn.com", "yahoo.com", "go.com", "thenation.com", "newrepublic.com","time.com","newsweek.com","politico.com"];
+
+const AGENT_LIST = ["Windows 10/ Edge browser: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246"   ,
+  "Windows 7/ Chrome browser: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36",
+  "Linux PC/Firefox browser: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:15.0) Gecko/20100101 Firefox/15.0.1",
+  "Chrome OS/Chrome browser: Mozilla/5.0 (X11; CrOS x86_64 8172.45.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.64 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.19582",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.19577",
+  "Mozilla/5.0 (X11) AppleWebKit/62.41 (KHTML, like Gecko) Edge/17.10859 Safari/452.6",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML like Gecko) Chrome/51.0.2704.79 Safari/537.36 Edge/14.14931",
+  "Chrome (AppleWebKit/537.1; Chrome50.0; Windows NT 6.3) AppleWebKit/537.36 (KHTML like Gecko) Chrome/51.0.2704.79 Safari/537.36 Edge/14.14393",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36",
+  "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2919.83 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2866.71 Safari/537.36",
+  "Mozilla/5.0 (X11; Ubuntu; Linux i686 on x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2820.59 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2762.73 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2656.18 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML like Gecko) Chrome/44.0.2403.155 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.1 Safari/537.36",
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:101.0) Gecko/20100101 Firefox/101.0",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:99.0) Gecko/20100101 Firefox/99.0",
+  "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:77.0) Gecko/20190101 Firefox/77.0"];
+
+const AI_KEYWORDS = ["algorithm","artificial intelligence","automatic learning","autonomous","big data","chatbot","cognitive computing","computational learning theory",
+    "computer vision","cluster analysis","data mining","decision tree","deep learning","game ai","knowledge engineering","machine intelligence","machine learning",
+    "machine perception","machine translation","natural language processing","natural language understanding","neural network","pattern recognition","predictive analysis",
+    "reinforcement learning","semantic annotation","strong ai","supervised learning","training data","transfer learning","unsupervised learning"];
 
 //  End scraper data.
 
 
+const DATA = {
+    MORE_DOMAINS : MORE_DOMAINS,
+    SOCIAL_MEDIA_DOMAINS: SOCIAL_MEDIA_DOMAINS,
+    NEWS_DOMAINS : NEWS_DOMAINS,
+    AGENT_LIST : AGENT_LIST,
+    AI_KEYWORDS : AI_KEYWORDS,
+    AI_DOMAINS : AI_DOMAINS,
+    AI_TOPICS: AI_TOPICS,
+    AI_TITLES: AI_TITLES,
+    INDUSTRIES : INDUSTRIES,
+    LARGEST_AUSTRALIAN_CITIES : LARGEST_AUSTRALIAN_CITIES,
+    LARGEST_ASIAN_CITIES : LARGEST_ASIAN_CITIEST,
+    LARGEST_EUROPEAN_CITIES : LARGEST_EUROPEAN_CITIES,
+    US_TECH_HUBS: US_TECH_HUBS,
+    EUROPEAN_TECH_HUBS: EUROPEAN_TECH_HUBS,
+    LATAM_TECH_HUBS: LATAM_TECH_HUBS,
+    LARGEST_LATAM_CITIES: LARGEST_LATAM_CITIES,
+    LARGEST_US_CITIES: LARGEST_US_CITIES,
+    JOB_GROUPS: JOB_GROUPS,
+    NEW_AI_LIST: NEW_AI_LIST,
+    OLD_TITLES: OLD_TITLES
+}
 
+function getData() {
+    return DATA;
+}
 
 /** takes an array and a number.  Returns an array of arrays of the length specified length.*/ 
 function makeGroups(myArray, length){
@@ -136,10 +268,11 @@ function elementsToOrClause(myArray) {
 
 /** returns a new array with duplicates removed. */
 function removeDuplicates(myArray) {
-
+    
     if(debugging) console.warn(`removeDuplicates([${myArray.length}])`);
     retval = [];
     for(let i=0;i<myArray.length;i++) {
+        //console.log(myArray[i]);
         let member = myArray[i].toLowerCase();
         let memberIndex = retval.indexOf(member);
         if(memberIndex == -1) retval.push(member);
@@ -185,294 +318,100 @@ function replaceAll(targetString,symbol,newsymbol)
     return targetString;
 }
 
-/** Writes scraped data to file.  If lastpage is false, the same search will continue. */
-function writeLeads(lastpage = true){
-    //let filename = `output - ${titles[tidx]} - ${industries[iidx]} - ${locales[lidx]}.csv`;
-    
-    let leadcount = 0;
-    let leadsToWrite = [];
-
-    //console.log("writing leads.....");
-    //console.log("there are " + ScrapedLeads.length + "!");
-    for(let i = 0; i < ScrapedLeads.length; i++)
-    {
-        let lead = ScrapedLeads[i];
-        let headline = lead.headline;
-        headline = headline.replace(" | LinkedIn","");
-        headline = headline.replace(" - LinkedIn","");
-        let fdi = headline.indexOf(" - ");
-        let ldi = headline.lastIndexOf(" - ");
-
-        if(ldi == fdi) { ldi = -1; }
-
-        // this is our best-case scenario, where ldi is greater than fdi, that means we have two dashes
-        // and we will assume that the second bit of information is the title.
-        // and the last bit of information is the company (and we may still be wrong)
-        if ((fdi >= 0) && (ldi >= 0))
-        {
-            lead.name = headline.substring(0,fdi);
-
-            lead.title == "" ? lead.title = headline.substring(fdi+3,ldi ) : false
-            
-            lead.company == "" ? lead.company = headline.substring(ldi+3, headline.length) : false;
-        }
-
-        // so now, if there's only one dash, we don't know whether the second piece of information is a company or a position....
-        if((fdi>=0) && (ldi<0))
-        {
-            lead.name = headline.substring(0,fdi);
-
-            let t = headline.substring(fdi+3,headline.length);
-            if(lead.title == "") {
-                //so if the lead doesn't have a title, we are going to use this second piece of information for a title...
-                lead.title = t;} 
-            else { 
-                //and if there's no company, we'll use it for a company. 
-                if((lead.company == "") || (lead.company == "LinkedIn")) {
-                    lead.company = t;
-                }}
-        }
-
-        //It's not impossible for this data to be duplicatedin both fields, but the important thing was the email, right?  Moving on....
-
-        //these conditions indicate that this is not a good result
-        //for our purposes. They are not "people" results.
-
-        if(lead.name == undefined) { continue };
-        if(lead.name.endsWith("'s Post")) { continue };
-        if(lead.name.startsWith("Articles ")) { continue };
-        if(lead.name.startsWith("Posts ")) { continue };
-        if(lead.name.startsWith("Publicações ")) { continue };
-        if(lead.link.includes("/posts/")) { continue };
-        if(lead.link.includes("/pub/dir/")) { continue };
-        if(lead.link.includes("/directory/")) { continue };
-
-        leadsToWrite.push(lead);
-        
+/** Reads in a text file and returns a line-by-line array */
+function fileToArray(filename){
+    let file = [];
+    try {
+        // read contents of the file
+        file = fs.readFileSync(filename).toString().split(/\r\n/);
     }
-
-    if(leadsToWrite.length > 0)
-    {
-        let outputfile = `output - ${locales[localeIndex]}.csv`
-        let output = fs.createWriteStream(outputfile,{flags:'a'});
-        for(let i = 0; i < leadsToWrite.length; i++)
-        {
-            let lead = leadsToWrite[i];
-            output.write(`"${lead.name}","${lead.title}","${lead.company}","${lead.email}","${lead.location}","${lead.phone}","${lead.link}"\n`);
-        }
-        output.close();
-        console.log("\r\n   " + leadsToWrite.length + ` records written to ${outputfile} ${titleIndex},${industryIndex},${localeIndex}` );
-    } 
-
-    ScrapedLeads = [];
-    //console.log(`writeLeads(lastpage = true):  lastpage=${lastpage}`);
-    createRequestOptions(lastpage);    
+    catch (err) {
+        console.error(err);
+    }
+    return file;
 }
 
-/** attempt the last request again with a different proxy. */
-function retryRequest() {
-    createRequestOptions(false,true);
-}
-
-/** called when a request returns an error */
-function onError(error){
-    console.error(error);
-    retryRequest();
-}
-
-function onRequestComplete(data)
+/**returns an array for fortune 1000 US companies in 2022 */
+function getFortune1k2022()
 {
-    //console.log("From external callback:");
-    //console.log(data);
-
-    if(data.indexOf('<title>400 Bad Request</title>') >= 0)
-    {
-        console.error(" -- BAD REQUEST --")
-        retryRequest();
-        return;
-    }
-
-    const $ = cheerio.load(data);
-    
-    let searchitems = $(".Gx5Zad.fP1Qef.xpd.EtOod.pkphOe")
-    for(let i=0; i < searchitems.length; i++)
-    {
-        //console.log("results");
-        let element = searchitems[i];
-        let link = $(element).find(".egMi0").find("a").attr('href');
-        link = link.substring(link.indexOf('=')+1,link.indexOf('&'));
-        let headline = $(element).find(".egMi0").find("h3").text();
-        let details = ""
-        let stub = $(element).find(".BNeawe.s3v9rd.AP7Wnd > div > div > div").text();
-
-        createDataObject(link,headline,details,stub);
-    }
-
-    let footerbutton = $(".nBDE1b.G5eFlf");
-    let buttontext = footerbutton.text().trim();
-
-    let arrow = (buttontext.substring(buttontext.length -1));
-    let lastpage = true;
-    switch(arrow)
-    {
-        case ">":
-            lastpage = false;
-            break;
-        
-        case "<":
-            lastpage = true;
-            break;
-        
-        default:
-            lastpage = true;
-            break;
-            //console.log("no button here... new search.")
-    }
-
-    //console.log(`onRequestComplete: arrow=${arrow}   lastepage=${lastpage}`);
-    writeLeads(lastpage);
+    return fileToArray("data/Fortune 1000 2020.txt");
 }
 
-let ScrapedLeads = [];
-/** stores scraped data from the last search in an object array called ScrapedLeads */
-function createDataObject(link,headline,details,stub)
+/**returns an array for Financial Times 1000 European companies in 2022 */
+function getFT1kEurope2022()
 {
-    // capture this data....
-    //let headline = item;
-    //let LILink = link;
-    let location = "";
-    let title = "";
-    let company = "";
-
-    // the details here contain the company, position, and location
-    // information for each linkedin search result (for a person).
-    //const details = $(searchItem).find(".MUxGbd.wuQ4Ob.WZ8Tjf").find("span");
-
-    // I'm extracting the data I need from the details here.
-    // This is ugly, but it looks ugly in the markup,
-    // so don't judge me.
-    for(let j = 0; j < details.length; j++)
+    let retval = [];
+    let file = fileToArray("data/FT 1000 Europe.txt");
+    for(let i = 0; i < file.length; i++)
     {
-        const detailItem = details;
-
-        switch(j)
-        {
-            case 0:
-                location = detailItem;
-                break;
-            case 4:
-                company = detailItem;
-                break;
-            case 2:
-                title = detailItem;
-                break;
-        }
+        let line = file[i].split(/\t/);
+        retval.push(line[1]);
     }
-
-    // The stub is the little preview of text you get with each search result.
-    //const stub = $(searchItem).find(".VwiC3b.yXK7lf.MUxGbd.yDYNvb.lyLwlc.lEBKkf").find("span").text();
-
-    // these are regular expressions to match email addresses and phone numbers.
-    // the phone number regex could be better, I think, but it's getting the job done.
-    const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
-    const phoneRegex = /(\+*\d{1,})*([ |\(])*(\d{3})[^\d]*(\d{3})[^\d]*(\d{4})/
-
-    // Here, we get our phone and email data.
-    const email = stub.match(emailRegex);
-    const phone = stub.match(phoneRegex);
-
-    if(email)
-    {
-        // If there is no email, then we have nothing, and this iteration ends,
-        // and we move to the next searchitem.
-
-        // otherwise....
-        let newlead = {};  // create an object to hold our data.
-        newlead.headline = headline;
-        newlead.link = link;
-        newlead.location = location;
-        newlead.title = title;
-        newlead.company = company;
-        newlead.email = email[0].trim();
-        newlead.phone = phone == null ? '' : phone[0]  // if we found a phone number, put it in, otherwise, an empty string.
-
-        ScrapedLeads.push(newlead)
-    }
+    return retval;
 }
 
-
-var titles = [];
-var industries = [];
-var locales = [];
-var domains = [];
-
-var titleIndex = 0;
-var industryIndex = 0;
-var localeIndex = 0;
-var domainIndex = 0;
-
-titles = JOB_GROUPS;
-//locales = locales = removeDuplicates(LARGEST_US_CITIES.concat(LARGEST_LATAM_CITIES,LARGEST_EUROPEAN_CITIES,LARGEST_ASIAN_CITIEST,LARGEST_AUSTRALIAN_CITIES));
-//locales = locales.splice(1*(locales.length/5) - (locales.length/5), (locales.length/5))
-
-domains = AI_DOMAINS;
-domains = removeDuplicates(domains)
-domains = makeGroups(domains,5);
-for(let i = 0; i < domains.length; i++ )
+function getFT500AsiaPacific2021()
 {
-    domains[i]=elementsToOrClause(domains[i]);
-}
-
-/** returns the URL of the next google search to scrape, based on available data.  If retry is true, it will return the last search performed. */
-function getNextSearchURL (pageNumber = 1, retry = false) {
-    console.warn(`getNextSearchURL(${pageNumber},${retry})`);
-    
-
-    if((pageNumber == 1) && (retry == false) )
+    let retval = [];
+    let file = fileToArray("data/FT 500 Asia-Pacific 2021.txt");
+    for(let i = 0; i < file.length; i++)
     {
-        titleIndex += 1;
-
-        if (titleIndex > (titles.length -1))
-        {
-            titleIndex = 0;
-            domainIndex += 1;
-
-            if(domainIndex > (titles.length -1))
-            {
-                //console.log(titleIndex, titles.length);
-                return "eof"
-            }
-        }
+        let line = file[i].split(/\t/);
+        retval.push(line[2]);
     }
-
-    //console.log(`getNextSearchURL:, titles:${titles.length}/${titleIndex}, industries:${industries.length}/${industryIndex}, locales:${locales.length}/${localeIndex}`);
-
-    let title = googlifyString(titles[titleIndex]);
-    //let locale = googlifyString(locales[localeIndex]);
-    let domain = googlifyString(domains[domainIndex]);
-
-    let baseURL = "http://www.google.com/search?q=";
-    //let query = `site.reddit.com ("artificial intelligence" OR "ai" OR "machine learning" OR "ml" OR "computer vision" OR "deep learning" OR "nlp" OR "natural language processing") AND "${locale}" AND ${title} AND "email" AND ("@gmail.com" OR "@yahoo.com" OR "@hotmail.com")`;
-    //let query = `site:linkedin.com/in ("artificial intelligence" OR "ai" OR "machine learning" OR "ml" OR "computer vision" OR "deep learning" OR "nlp" OR "natural language processing") AND "${locale}" AND ${title} AND "email" AND ("@google.com" OR "@amazon.com" OR "@deepmind.com")`;
-    let query = `site:linkedin.com/in ("artificial intelligence" OR "machine learning" OR "computer vision" OR "deep learning" OR "natural language processing") AND ${title} AND "email" AND ${domain}`;
-
-
-
-    query = googlifyString(query);
-
-    baseURL += query + "&num=100";
-
-    if(pageNumber > 1) {
-        baseURL += "&start=" + (pageNumber-1)*100
-    }
-
-    //console.log(`getNextSearchURL: pageNumber=${pageNumber}    retry=${retry}`);
-    console.log(`${baseURL}`);
-    return baseURL
+    return retval;
 }
 
 
+function companiesByIndustry(industryName) {
+    let retval = [];
+    let myArrayOfLines = fs.readFileSync(`data/BigCompanyData/${industryName}.jsonl`).toString().split(/\r?\n/);
+    for(let i = 0; i<myArrayOfLines.length; i++)
+    {
+        let nextline = myArrayOfLines[i];
+        if(nextline.trim().length == 0) continue;
+        let newobject = JSON.parse(nextline)
+        //console.log(newobject); 
+        retval.push(newobject);
+    }
+    return retval;
+}
+
+function get(industryName) {
+    let retval = [];
+    let myArrayOfLines = fs.readFileSync(`BigCompanyData/${industryName}.json`).toString().split(/\r?\n/);
+    for(let i = 0; i<myArrayOfLines.length; i++)
+    {
+        let nextline = myArrayOfLines[i];
+        if(nextline.trim().length == 0) continue;
+        let newobject = JSON.parse(nextline)
+        //console.log(newobject); 
+        retval.push(newobject);
+    }
+    return retval;
+}
 
 
+/*
+let companies = get("information technology and services");
+console.log(companies.length);
+companies = companies.filter(company => parseInt(company.current_headcount,0) > 50);
+console.log(companies.length);
+*/
 
+/*
 
+let companies = get("computer software");
+console.log(companies.length);
+companies = companies.filter(company => parseInt(company.current_headcount,0) > 25);
+console.log(companies.length);
+*/
+
+/*
+
+let companies = get("automotive");
+console.log(companies.length);
+companies = companies.filter(company => parseInt(company.current_headcount,0) > 25);
+console.log(companies.length);
+
+*/
