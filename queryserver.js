@@ -282,7 +282,7 @@ function initilizeData() {
   //let ap500 = [...getFT500AsiaPacific2021()];
   //let companies = us1000.concat(eu1000,ap500);
 
-  let companies = companiesByIndustry("automotive");
+  //let companies = companiesByIndustry("automotive");
   //companies = companies.filter(company => parseInt(company.current_headcount,0) > 25);
   //let names = [];
   //companies.forEach((company) => {
