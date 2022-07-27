@@ -308,7 +308,8 @@ function initilizeData() {
   console.log(querylist.length);
   /*   If you start to get confused, this is the way this is supposed to work....
   let titles = [...JOB_GROUPS];
-  let domains = makeGroups(removeDuplicates([...AI_DOMAINS]),3);
+  let domains = removeDuplicates([...AI_DOMAINS])
+  domains = makeGroups(domains,3);
   for(let i=0; i<domains.length; i++) {
     let orclause = elementsToOrClause(domains[i]);
     domains[i] = orclause;
