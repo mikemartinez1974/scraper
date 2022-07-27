@@ -1,5 +1,5 @@
 const debugging = false;
-const useProxies = true;
+const useProxies = false;
 
 const axios = require('axios');
 const http = require('http');
@@ -118,7 +118,10 @@ eval(fs.readFileSync('../utils.js')+'');
 
     /** Executes a search and sends the html to onRequestComplete() */
     function makeRequest(options) {
-        if (debugging) console.warn("makeRequest()");
+        if (debugging) {
+            console.warn("makeRequest()");
+            console.log(options);
+        }
         
         const request = http.request(options, (response) => {
             let data = '';
