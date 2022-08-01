@@ -22,8 +22,19 @@
 /scraper copy 7
 /scraper copy 8
 /scraper copy 9
-/scrub folder
 /socks4.txt
 /socks5.txt
 /test.js
 /ThreadTesting
+/scrub folder/node_modules
+/scrub folder/old
+scrub folder/Library - 20-07-2022 10-42.csv
+scrub folder/Library - 20-07-2022 21-16.csv
+scrub folder/NewLeads - 17-07-2022 02-51.csv
+scrub folder/NewLeads - 17-07-2022 03-24.csv
+scrub folder/NewLeads - 17-07-2022 11-43.csv
+scrub folder/NewLeads - 18-07-2022 21-54.csv
+scrub folder/NewLeads - 20-07-2022 10-42.csv
+scrub folder/NewLeads - 20-07-2022 21-16.csv
+scrub folder/output.csv
+output.csv

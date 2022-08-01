@@ -1,5 +1,5 @@
 const debugging = false;
-const useProxies = false;
+const useProxies = true;
 
 const axios = require('axios');
 const http = require('http');

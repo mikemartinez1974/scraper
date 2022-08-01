@@ -301,8 +301,9 @@ function initilizeData() {
 
   let topics = ['("artificial intelligence" OR "machine learning" OR "computer vision")', '("deep learning" OR "natural language processing" OR "big data")'];
 
-  querylist = cartesianProduct([topics,names,titles]);
+  //querylist = cartesianProduct([topics,names,titles]);
   //querylist = shuffleArray(querylist);
+  querylist = cartesianProduct([topics,titles,US_TECH_HUBS]);
 
   console.log(querylist[0]);
   console.log(querylist.length);
