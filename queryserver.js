@@ -299,14 +299,13 @@ function initilizeData() {
   let names = ["ibm","cisco","oracle","microsoft"];
   let titles = [...JOB_GROUPS];
 
-  let companies = companiesByIndustry("telecommunications");
-  //companies = companies.concat(companiesByIndustry("defense & space"));
+  let companies = companiesByIndustry("aviation & aerospace");
   //companies = companies.concat(companiesByIndustry("financial services"));
   //companies = companies.concat(companiesByIndustry("banking"));
   //companies = companies.concat(companiesByIndustry("internet"));
   //companies = companies.concat(companiesByIndustry("hospital & health care"));
 
-  /*  Do five more of these next run.
+  //  Do five more of these next run.
   companies = companies.concat(companiesByIndustry("aviation & aerospace"));
   companies = companies.concat(companiesByIndustry("automotive"));
   companies = companies.concat(companiesByIndustry("insurance"));
@@ -314,22 +313,85 @@ function initilizeData() {
   companies = companies.concat(companiesByIndustry("biotechnology"));
   companies = companies.concat(companiesByIndustry("mechanical or industrial engineering"));
   companies = companies.concat(companiesByIndustry("broadcast media"));
-*/
+
+  companies = companies.concat(companiesByIndustry("semiconductors"));
+  companies = companies.concat(companiesByIndustry("computer networking"));
+  companies = companies.concat(companiesByIndustry("oil & energy"));
+  companies = companies.concat(companiesByIndustry("transportation-trucking-railroad"));
+  companies = companies.concat(companiesByIndustry("pharmaceuticals"));
+  companies = companies.concat(companiesByIndustry("logistics and supply chain"));
+  //companies = companies.concat(companiesByIndustry("translation and localization"));
+  //companies = companies.concat(companiesByIndustry("medical devices"));
+  //companies = companies.concat(companiesByIndustry("airlines/aviation"));
+  //companies = companies.concat(companiesByIndustry("supermarkets"));
+  //companies = companies.concat(companiesByIndustry("food production"));
+  //companies = companies.concat(companiesByIndustry("civil engineering"));
+  //companies = companies.concat(companiesByIndustry("machinery"));
+  //companies = companies.concat(companiesByIndustry("utilities"));
+  //companies = companies.concat(companiesByIndustry("research"));
+  //companies = companies.concat(companiesByIndustry("package/freight delivery"));
+  //companies = companies.concat(companiesByIndustry("mining & metals"));
+  //companies = companies.concat(companiesByIndustry("computer hardware"));
+  //companies = companies.concat(companiesByIndustry("capital markets"));
+  //companies = companies.concat(companiesByIndustry("industrial automation"));
+  //companies = companies.concat(companiesByIndustry("marketing and advertising"));
+  //companies = companies.concat(companiesByIndustry("motion pictures and film"));
+  //companies = companies.concat(companiesByIndustry("graphic design"));
+  //companies = companies.concat(companiesByIndustry("market research"));
+  //companies = companies.concat(companiesByIndustry("public safety"));
+  //companies = companies.concat(companiesByIndustry("computer games"));
+  //companies = companies.concat(companiesByIndustry("investment management"));
+  //companies = companies.concat(companiesByIndustry("animation"));
+  //companies = companies.concat(companiesByIndustry("computer & network security"));
+  //companies = companies.concat(companiesByIndustry("online media"));
+  //companies = companies.concat(companiesByIndustry("executive office"));
+  //companies = companies.concat(companiesByIndustry("think tanks"));
+  //companies = companies.concat(companiesByIndustry("venture capital & private equity"));
+  //companies = companies.concat(companiesByIndustry("nanotechnology"));
+
 
 //trim this list down to companies with at least 50 employees.
   companies = companies.filter(company => company.current_headcount > 49);
   console.log(`companies selected: ${companies.length}`);
 
-  companies = makeGroups(companies, 3)
+  companies = makeGroups(companies, 5)
+  
+  //this loop takes the companies that we have and prepares them to be searched for.
+  //We don't know exactly how many it will be.  It won't be more than the second parameter
+  //on the makeGroups call, but it could be less.
+  let c = []
   for(let i = 0; i < companies.length; i++){
+    c = [];
+    for(let j = 0; j < companies[i].length; j++) {
+      let company = companies[i][j];
+      let name = company.name;
+
+      //get rid of the trash characters that will hamper our search.
+      name = replaceAll(name,'"','');
+      name = replaceAll(name,',','');
+      name = replaceAll(name,'.','');
+      name = replaceAll(name," - ", " ");
+      name = replaceAll(name,' & ', ' ');
+      
+      //Truncate the company name to five words.
+      name = String(name).split(" ");
+      if(name.length > 5){
+        name = name.slice(0,5)
+      }
+      name = name.join(" ");
+
+      c.push(name);
+    }
+
+    /*
     let c1 = companies[i][0];
     let c2 = companies[i][1];
     let c3 = companies[i][2];
     
-    let c = []
     if(c1) c.push(c1.name);
     if(c2) c.push(c2.name);
     if(c3) c.push(c3.name);
+    */
     
     companies[i] = c;
 
@@ -398,7 +460,10 @@ function getQuery() {
   query = googlifyString(query);
   query = "http://www.google.com/search?q=" + query;
   
-  console.log(`${currentTime()} ${nextQueryIndex} of ${listLength} `, querylist[nextQueryIndex][0],querylist[nextQueryIndex][1]);
+  let snip1 = String(querylist[nextQueryIndex][0]).substring(0,20);
+  let snip2 = String(querylist[nextQueryIndex][1]).substring(0,20);
+
+  console.log(`${currentTime()} : ${nextQueryIndex} of ${listLength} : ${snip1}...  ${snip2}...`);
   
   nextQueryIndex++;
   return query;
