@@ -168,3 +168,27 @@ function shuffleArray(array)
 
     return shuffled
 }
+
+/** gets current HH:mm:ss */
+function currentTime(){
+    let date = new Date();
+    let h = date.getHours();
+    h = ("00" + h).slice(-2)
+    let m = date.getMinutes();
+    m = ("00" + m).slice(-2)
+    let s = date.getSeconds();
+    s = ("00" + 2).slice(-2)
+    return `${h}:${m}:${s}`;
+}
+
+/** gets current mm/dd/yyyy */
+function currentDate(){
+    let date = new Date();
+    let m = (date.getMonth() + 1);
+    m = ("00" + m).slice(-2);
+    let d = date.getDate();
+    d = ("00" + d).slice(-2);
+    let y = date.getFullYear();
+    y = ("0000" + y).slice(-4)
+    return `${m}/${d}/${y}`; 
+}

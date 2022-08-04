@@ -286,13 +286,10 @@ eval(fs.readFileSync('../utils.js')+'');
 
     /** Writes scraped data to file.  If lastpage is false, the same search will continue. */
     function writeLeads(scrapedLeads, lastpage = true){
-        //let filename = `output - ${titles[tidx]} - ${industries[iidx]} - ${locales[lidx]}.csv`;
-        
+                
         let leadcount = 0;
         let leadsToWrite = [];
 
-        //console.log("writing leads.....");
-        //console.log("there are " + ScrapedLeads.length + "!");
         for(let i = 0; i < scrapedLeads.length; i++)
         {
             let lead = scrapedLeads[i];
@@ -360,7 +357,7 @@ eval(fs.readFileSync('../utils.js')+'');
                 output.write(`"${lead.name}","${lead.title}","${lead.company}","${lead.email}","${lead.location}","${lead.phone}","${lead.link}"\n`);
             }
             output.close();
-            console.log("\r\n   " + leadsToWrite.length + ` records written to ${outputfile}` );
+            console.log("\r\n   " + currentTime() + " " + leadsToWrite.length + ` records written to ${outputfile} (from page ${pagenum})` );
         } 
         else
         {
