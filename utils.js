@@ -177,7 +177,7 @@ function currentTime(){
     let m = date.getMinutes();
     m = ("00" + m).slice(-2)
     let s = date.getSeconds();
-    s = ("00" + 2).slice(-2)
+    s = ("00" + s).slice(-2)
     return `${h}:${m}:${s}`;
 }
 
