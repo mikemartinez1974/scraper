@@ -299,11 +299,48 @@ function initilizeData() {
   let names = ["ibm","cisco","oracle","microsoft"];
   let titles = [...JOB_GROUPS];
 
-  let topics = ['("artificial intelligence" OR "machine learning" OR "computer vision")', '("deep learning" OR "natural language processing" OR "big data")'];
+  let companies = companiesByIndustry("telecommunications");
+  //companies = companies.concat(companiesByIndustry("defense & space"));
+  //companies = companies.concat(companiesByIndustry("financial services"));
+  //companies = companies.concat(companiesByIndustry("banking"));
+  //companies = companies.concat(companiesByIndustry("internet"));
+  //companies = companies.concat(companiesByIndustry("hospital & health care"));
 
+  /*  Do five more of these next run.
+  companies = companies.concat(companiesByIndustry("aviation & aerospace"));
+  companies = companies.concat(companiesByIndustry("automotive"));
+  companies = companies.concat(companiesByIndustry("insurance"));
+  companies = companies.concat(companiesByIndustry("investment banking"));
+  companies = companies.concat(companiesByIndustry("biotechnology"));
+  companies = companies.concat(companiesByIndustry("mechanical or industrial engineering"));
+  companies = companies.concat(companiesByIndustry("broadcast media"));
+*/
+
+//trim this list down to companies with at least 50 employees.
+  companies = companies.filter(company => company.current_headcount > 49);
+  console.log(`companies selected: ${companies.length}`);
+
+  companies = makeGroups(companies, 3)
+  for(let i = 0; i < companies.length; i++){
+    let c1 = companies[i][0];
+    let c2 = companies[i][1];
+    let c3 = companies[i][2];
+    
+    let c = []
+    if(c1) c.push(c1.name);
+    if(c2) c.push(c2.name);
+    if(c3) c.push(c3.name);
+    
+    companies[i] = c;
+
+    companies[i] = elementsToOrClause(companies[i]);
+  }
+  //let topics = ['("artificial intelligence" OR "machine learning" OR "computer vision")', '("deep learning" OR "natural language processing" OR "big data")'];
+  
   //querylist = cartesianProduct([topics,names,titles]);
   //querylist = shuffleArray(querylist);
-  querylist = cartesianProduct([topics,titles,US_TECH_HUBS]);
+  //querylist = cartesianProduct([topics,titles,US_TECH_HUBS]);
+  querylist = cartesianProduct([companies,titles]);
 
   console.log(querylist[0]);
   console.log(querylist.length);
@@ -344,22 +381,24 @@ initilizeData();
 
 function getQuery() {
 
-  if(nextQueryIndex >= querylist.length -1){
+  let listLength = querylist.length
+
+  if(nextQueryIndex >= listLength -1){
     console.log("   *** END OF SEARCH ***   ")
     return "eof"
   }
   
   let site = "site:linkedin.com/in";
-  let topic = querylist[nextQueryIndex][0]
-  let title = querylist[nextQueryIndex][2];
-  let company = querylist[nextQueryIndex][1];
+  //let topic = querylist[nextQueryIndex][0]
+  let title = querylist[nextQueryIndex][1];
+  let company = querylist[nextQueryIndex][0];
   //console.log(domain);
   //let query = `${site} ${topic} AND "${title}" AND ${domain} AND "email"`;
-  let query = `${site} ${topic} AND ${title} AND "${company}" AND "email" AND ("com" OR "net" OR "org" OR "ai" OR "io") -recruiter -"human" -sales -marketing -account`;
+  let query = `${site} ${company} AND "${title}" AND "email" AND ("com" OR "net" OR "org" OR "ai" OR "io") -recruiter -"human" -sales -marketing -account`;
   query = googlifyString(query);
   query = "http://www.google.com/search?q=" + query;
   
-  console.log(`${nextQueryIndex +1} of ${querylist.length}  `, topic, title, company);
+  console.log(`${currentTime()} ${nextQueryIndex} of ${listLength} `, querylist[nextQueryIndex][0],querylist[nextQueryIndex][1]);
   
   nextQueryIndex++;
   return query;
