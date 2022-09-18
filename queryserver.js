@@ -1,10 +1,14 @@
 const debugging = false;
 
+const { executionAsyncResource } = require('async_hooks');
 const fs = require('fs');
 const http = require('http');
 eval(fs.readFileSync(__dirname + '/utils.js')+'');
 //eval(fs.readFileSync(__dirname + '/eduDomainData.js')+'');
 eval(fs.readFileSync(__dirname + '/data.js')+'');
+eval(fs.readFileSync(__dirname + '/../Data/DataTools.js')+'');
+const mysql = require('mysql2');
+const lineReader = require('linereader');
 
 //  Begin Scraper Data.
 const AI_TITLES = ["AI VP", "AI Data", "AI Engineer", "AI Developer", "AI Programmer", "AI Scientist", "AI Investor", "AI Manger", "AI Senior", "AI Lead", 
@@ -18,14 +22,9 @@ const NEW_AI_LIST = ["VP of Artificial Itelligence", "AI Project Manager", "AI P
 
 const JOB_GROUPS = ['("developer" OR "programmer" OR "engineer")', 
     '("data analyst" OR "data scientist OR "data engineer")', 
-    '("principal engineer" OR "principal architect" OR "researcher" OR "research scientist")', 
+    '("researcher" OR "research scientist" OR "computer science")', 
     '("project manager" OR "product manager" OR "product owner")', 
-    '("ceo" OR "cto" OR "cio" OR "vp" OR "vice president")',
-    '("technology" OR "student" OR "investor")',
-    '("bod" OR "president" OR "director" OR "manager")',
-    '("front end" OR "back end" OR "full stack")',
-    '("computer science" OR "solution" OR "applied AI")',
-    '("postdoc" OR "professor")'];
+    '("ceo" OR "cto" OR "cio" OR "vp" OR "president" OR "investor")'];
 
 const LARGEST_US_CITIES = ['New York City','Los Angeles','Chicago','Houston','Phoenix','San Antonio','Philadelphia','San Diego','Dallas','Austin',
     'San Jose','Fort Worth','Jacksonville','Charlotte','Columbus','Indianapolis','San Francisco','Seattle','Denver','Washington',
@@ -71,6 +70,11 @@ const US_TECH_HUBS = ["New York City", "Dallas", "Houston", "Colorado Springs", 
 const LARGEST_EUROPEAN_CITIES = ["Istanbul","Moscow","London","Saint Petersburg","Berlin","Madrid","Kyiv","Rome","Bucharest","Paris","Minsk","Vienna","Hamburg",
     "Warsaw","Budapest","Belgrade","Barcelona","Munich","Kharkiv","Milan","Sofia","Prague","Kazan","Nizhny Novgorod","Samara","Birmingham","Rostov-on-Don","Ufa",
     "Cologne","Voronezh","Perm","Volgograd"];
+
+const EUROPEAN_COUNTRIES = ["Albania","Andorra","Armenia","Austria","Azerbaijan","Belarus","Belgium","Bosnia and Herzegovina","Bulgaria","Croatia","Cyprus",
+    "Czechia","Denmark","Estonia","Finland","France","Georgia","Germany","Greece","Hungary","Iceland","Ireland","Italy","Kazakhstan","Kosovo","Latvia",
+    "Liechtenstein","Lithuania","Luxembourg","Malta","Moldova","Monaco","Montenegro","Netherlands","North Macedonia","Norway","Poland","Portugal","Romania",
+    "Russia","San Marino","Serbia","Slovakia","Slovenia","Spain","Sweden","Switzerland","Turkey","Ukraine","United Kingdom","Vatican City"];
 
 const LARGEST_ASIAN_CITIEST = ["Shanghai","Karachi","Beijing","Mumbai","Delhi","Istanbul","Dhaka","Tokyo","Manila","Guangzhou","Shenzhen","Bangkok","Suzhou",
     "Jakarta","Lahore","Seoul","Ho Chi Minh City","Bengaluru","Dongguan","Chongqing","Nanjing","Tehran","Shenyang","Hanoi","Hong Kong","Baghdad","Chennai",
@@ -203,7 +207,7 @@ const AI_KEYWORDS = ["algorithm","artificial intelligence","automatic learning",
 
 const TASK = "linkedin";
 
-let eduDomains = []
+let eduDomains = [];
 
 let proxyList = [];
 let nextProxyIndex = 0;
@@ -267,15 +271,23 @@ const requestListener = function (req, res) {
   res.end(data);
 }
 
-/** start listening */
-const portnumber = 8888;
-const server = http.createServer(requestListener);
-server.listen(portnumber);
-console.log(`Listening on port ${portnumber}.`);
 
+initilizeData()
+.then(() => {
+  /** start listening */
+  const portnumber = 8888;
+  const server = http.createServer(requestListener);
+  server.listen(portnumber);
+  console.log(`Listening on port ${portnumber}.`);
+});
 
+async function getCompanies() {
+  console.log("Getting Companies... Please wait.");
+  let retval = await execute("select name from searchlist");
+  return retval;
+}
 
-function initilizeData() {
+async function initilizeData() {
   
   //let us1000 = [...getFortune1k2022()];
   //let eu1000 = [...getFT1kEurope2022()];
@@ -296,32 +308,44 @@ function initilizeData() {
   //  }
   //});
 
-  let names = ["ibm","cisco","oracle","microsoft"];
-  let titles = [...JOB_GROUPS];
+  //let names = ["ibm","cisco","oracle","microsoft"];
+  
+  
 
-  let companies = companiesByIndustry("aviation & aerospace");
-  //companies = companies.concat(companiesByIndustry("financial services"));
+  //let companies = companiesByIndustry("information technology and services");
+
+  //companies = companies.concat(companiesByIndustry("information technology and services"));
+  //companies = companies.concat(companiesByIndustry("military"));
+  //companies = companies.concat(companiesByIndustry("accounting"));
+  //let companies = companiesByIndustry("computer software");
+  //companies = companies.concat(companiesByIndustry("computer software"));
+  //companies = companies.concat(companiesByIndustry("telecommunications"));
+  //companies = companies.concat(companiesByIndustry("defense & space"));
+  //companies = companies.concat(companiesByIndustry("information services"));
+  //companies = companies.concat(companiesByIndustry("wireless"));
+  //companies = companies.concat(companiesByIndustry("computer hardware"));
+
+  //let companies = companiesByIndustry("medical devices");
   //companies = companies.concat(companiesByIndustry("banking"));
   //companies = companies.concat(companiesByIndustry("internet"));
   //companies = companies.concat(companiesByIndustry("hospital & health care"));
+  //companies = companies.concat(companiesByIndustry("automotive"));
+  //companies = companies.concat(companiesByIndustry("insurance"));
+  //companies = companies.concat(companiesByIndustry("investment banking"));
 
-  //  Do five more of these next run.
-  companies = companies.concat(companiesByIndustry("aviation & aerospace"));
-  companies = companies.concat(companiesByIndustry("automotive"));
-  companies = companies.concat(companiesByIndustry("insurance"));
-  companies = companies.concat(companiesByIndustry("investment banking"));
-  companies = companies.concat(companiesByIndustry("biotechnology"));
+  /*
+  let companies = companiesByIndustry("biotechnology");
   companies = companies.concat(companiesByIndustry("mechanical or industrial engineering"));
   companies = companies.concat(companiesByIndustry("broadcast media"));
-
   companies = companies.concat(companiesByIndustry("semiconductors"));
   companies = companies.concat(companiesByIndustry("computer networking"));
   companies = companies.concat(companiesByIndustry("oil & energy"));
   companies = companies.concat(companiesByIndustry("transportation-trucking-railroad"));
-  companies = companies.concat(companiesByIndustry("pharmaceuticals"));
-  companies = companies.concat(companiesByIndustry("logistics and supply chain"));
+  */
+
+  //companies = companies.concat(companiesByIndustry("pharmaceuticals"));
+  //companies = companies.concat(companiesByIndustry("logistics and supply chain"));
   //companies = companies.concat(companiesByIndustry("translation and localization"));
-  //companies = companies.concat(companiesByIndustry("medical devices"));
   //companies = companies.concat(companiesByIndustry("airlines/aviation"));
   //companies = companies.concat(companiesByIndustry("supermarkets"));
   //companies = companies.concat(companiesByIndustry("food production"));
@@ -331,7 +355,9 @@ function initilizeData() {
   //companies = companies.concat(companiesByIndustry("research"));
   //companies = companies.concat(companiesByIndustry("package/freight delivery"));
   //companies = companies.concat(companiesByIndustry("mining & metals"));
-  //companies = companies.concat(companiesByIndustry("computer hardware"));
+
+  
+  //let companies = companiesByIndustry("capital markets");
   //companies = companies.concat(companiesByIndustry("capital markets"));
   //companies = companies.concat(companiesByIndustry("industrial automation"));
   //companies = companies.concat(companiesByIndustry("marketing and advertising"));
@@ -342,6 +368,8 @@ function initilizeData() {
   //companies = companies.concat(companiesByIndustry("computer games"));
   //companies = companies.concat(companiesByIndustry("investment management"));
   //companies = companies.concat(companiesByIndustry("animation"));
+
+  //let companies = companiesByIndustry("computer & network security");
   //companies = companies.concat(companiesByIndustry("computer & network security"));
   //companies = companies.concat(companiesByIndustry("online media"));
   //companies = companies.concat(companiesByIndustry("executive office"));
@@ -351,12 +379,21 @@ function initilizeData() {
 
 
 //trim this list down to companies with at least 50 employees.
-  companies = companies.filter(company => company.current_headcount > 49);
-  console.log(`companies selected: ${companies.length}`);
+  //companies = companies.filter(company => ((company.current_headcount < 49) &&(company.current_headcount > 9)));
+  //companies = companies.filter(company => company.country.trim() != "");
+  //companies = companies.filter(company => EUROPEAN_COUNTRIES.includes(company.country.trim()) == false);
 
-  companies = makeGroups(companies, 5)
+  //  let companyfile = fs.readFileSync("data/5kMoreCompanies.txt");
+  //let companies = fileToArray("data/5kMoreCompanies.txt")
+
+  let companies = await getCompanies();
+  let titles = ['("CEO" OR "CFO" OR "COO" OR "VP" OR "President")'];
   
-  //this loop takes the companies that we have and prepares them to be searched for.
+  console.log(`companies selected: ${companies.length}`);
+  
+  companies = makeGroups(companies, 5);
+
+  //this loop takes the companies that we have and prepared them to be searched for.
   //We don't know exactly how many it will be.  It won't be more than the second parameter
   //on the makeGroups call, but it could be less.
   let c = []
@@ -397,16 +434,19 @@ function initilizeData() {
 
     companies[i] = elementsToOrClause(companies[i]);
   }
+
   //let topics = ['("artificial intelligence" OR "machine learning" OR "computer vision")', '("deep learning" OR "natural language processing" OR "big data")'];
-  
   //querylist = cartesianProduct([topics,names,titles]);
   //querylist = shuffleArray(querylist);
   //querylist = cartesianProduct([topics,titles,US_TECH_HUBS]);
+  
   querylist = cartesianProduct([companies,titles]);
 
   console.log(querylist[0]);
-  console.log(querylist.length);
+  console.log("Query List: " + querylist.length);
+  
   /*   If you start to get confused, this is the way this is supposed to work....
+
   let titles = [...JOB_GROUPS];
   let domains = removeDuplicates([...AI_DOMAINS])
   domains = makeGroups(domains,3);
@@ -438,8 +478,6 @@ function historicalSearch(topic) {
 }
 //historicalSearch("Trump");
 //console.log(historicalSearches);
-
-initilizeData();
 
 function getQuery() {
 
