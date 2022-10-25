@@ -7,8 +7,8 @@ function makeGroups(myArray, length){
     if(debugging) console.warn(`makeGroups([${myArray.length}],${length})`);
 
     let retval = [];
-    let source = [...myArray];
-    source.reverse();
+    let source = myArray;
+    source = Array(myArray).reverse();
     while(source.length > 0)
     {
         let subarray = []
@@ -33,11 +33,22 @@ function makeGroups(myArray, length){
 
 /** returns an "OR" clause constructed from the elements of and array. For Ex: ("item1" OR "item2" OR "item3") */
 function elementsToOrClause(myArray) {
+
+    if(!myArray)
+    {
+        throw("Null Argument Exception in elementsToOrClause(myArray)");
+    }
+
+    console.log("I'm in here.");
+    console.log(myArray);
+
     let retval = "";
 
     if(debugging) {
         console.warn(`elementsToOrClause([${myArray.length}])`);
     } 
+
+    console.log(myArray);
 
     retval = myArray.join('" OR "');
     retval = '("' + retval + '")';
