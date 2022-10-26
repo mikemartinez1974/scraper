@@ -4,7 +4,7 @@ const debugging = false;
 const fs = require('fs');
 const http = require('http');
 eval(fs.readFileSync(__dirname + '/../utils/utils.js')+'');
-eval(fs.readFileSync(__dirname + '/data.js')+'');
+eval(fs.readFileSync(__dirname + '/../Data/data.js')+'');
 eval(fs.readFileSync(__dirname + '/../Data/DataTools.js')+'');
 
 
@@ -179,7 +179,7 @@ async function initilizeData(sqlQuery) {
     //Where A,B,C,D,E are fixed, and F,G,H will be variable.
 
     //let fixed = '("Professor" OR "Dean" OR "Faculty") AND ("Artificial Intelligence" OR "Machine Learning" OR "Computer Science") AND "email" AND ';
-    let fixed = 'site:linkedin.com/in ';
+    let fixed = 'site:linkedin.com/in ("gmail.com" OR "yahoo.com" OR "hotmail.com") ';
 
     //To make the variable section, we take some number search targets and make an OR clause
     //out of them.  Agan, search for X and Y from any of these search. (thisplace or thisplace or thisplace)
