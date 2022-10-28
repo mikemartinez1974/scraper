@@ -1,12 +1,12 @@
 const debugging = false;
-
+const USESEARCHFILE = true;
+let targetTable = "output";
 
 const fs = require('fs');
 const http = require('http');
 eval(fs.readFileSync(__dirname + '/../utils/utils.js')+'');
 eval(fs.readFileSync(__dirname + '/../Data/data.js')+'');
 eval(fs.readFileSync(__dirname + '/../Data/DataTools.js')+'');
-
 
 const TASK = "linkedin";
 var itemsPerPage = 100; 
@@ -17,8 +17,7 @@ let nextProxyIndex = 0;
 let querylist = [];
 let nextQueryIndex = 0;
 let nextAgentIndex = 0;
-const USESEARCHFILE = false;
-let targetTable;
+
 
 
 
@@ -93,7 +92,6 @@ const requestListener = function (req, res) {
     process.exit();
   }
 }
-
 
 //This query defines the dataset that will be used to generate searches.
 //let query = "select distinct a.person, a.school, b.domains from openai.deans a join scraperdata.universities b on a.school = b.name where person is not null order by a.person asc;";
@@ -179,7 +177,10 @@ async function initilizeData(sqlQuery) {
     //Where A,B,C,D,E are fixed, and F,G,H will be variable.
 
     //let fixed = '("Professor" OR "Dean" OR "Faculty") AND ("Artificial Intelligence" OR "Machine Learning" OR "Computer Science") AND "email" AND ';
-    let fixed = 'site:linkedin.com/in ("gmail.com" OR "yahoo.com" OR "hotmail.com") ';
+    let linkedin = 'site:linkedin.com/in ';
+    let email = '("gmail.com" OR "yahoo.com" OR "hotmail.com") '
+    let fixed = linkedin;
+    fixed += "AND ";
 
     //To make the variable section, we take some number search targets and make an OR clause
     //out of them.  Agan, search for X and Y from any of these search. (thisplace or thisplace or thisplace)
@@ -298,6 +299,7 @@ function getQuery() {
   if(USESEARCHFILE)
   {
     //If we're using a searchfile, the item in the querylist is just a URL
+    console.log(`${currentTime()} : ${nextQueryIndex + 1} of ${listLength} : ${querylist[nextQueryIndex]}...`);
     query = querylist[nextQueryIndex]
   }
   else
@@ -319,8 +321,8 @@ function getQuery() {
     }
     
     //just for output...
-    let snip1 = String(fixed).substring(0,20);
-    let snip2 = String(variable).substring(0,20);
+    let snip1 = fixed.toString().substr(0,20);
+    let snip2 = variable.toString().substr(0,20);
 
     console.log(`${currentTime()} : ${nextQueryIndex + 1} of ${listLength} : ${snip1}...  ${snip2}...`);
     query = url;

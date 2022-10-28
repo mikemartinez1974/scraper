@@ -19,3 +19,4 @@ scrub folder/NewLeads*.*
 scrub folder/output.csv
 output.csv
 proxylist.txt
+searchlist.txt

@@ -1,5 +1,5 @@
 const debugging = false;
-const useProxies = true;
+const useProxies = false;
 
 const util = require('util');
 const axios = require('axios');
@@ -94,7 +94,7 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
         if (start == true) 
         {
             nextUrl = await getNextQuery();
-            console.log(" + New Search: " + nextUrl);
+            console.log("\n" + currentTime() + " + New Search: " + nextUrl);
             pagenum  = 1;
         }
 
@@ -150,7 +150,6 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
             {
                 options = url || nextUrl;
             }
-            
         }
 
         makeRequest(options);
@@ -165,7 +164,16 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
         }
 
         let request;
-        if(String(options.url).indexOf("https://") == 0){
+        
+        let protocol = "http";
+        if(typeof options === 'string') {
+            if (options.indexOf("https://") == 0) protocol = "https"
+        }
+        else if (typeof options === 'object') {
+            if (String(options.url).indexOf("https://") == 0) protocol = "https"
+        }
+
+        if(protocol == "https"){
             
             request = https.request(options, (response) => {
                 let data = '';
@@ -178,14 +186,15 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
                 });
 
                 response.on('error', (error) => {
-                    console.error('\t - RESPONSE ERROR:',error,options);
+                    console.error('\t -- RESPONSE ERROR --');
+                    //console.error('\t - RESPONSE ERROR:',error,options);
                     retryRequest();
                 });
             })
             
             request.on('error', (error) => {
-                console.log("\t - HTTPS Error: -- Connection Reset --");
-                console.log(error);
+                console.log("\t -- HTTPS Error: -- Connection Reset --");
+                //console.log(error);
                 retryRequest();
             });
             
@@ -205,7 +214,8 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
                 });
 
                 response.on('error', (error) => {
-                    console.error('\t - RESPONSE ERROR:',error,options);
+                    console.error('\t -- RESPONSE ERROR --');
+                    //console.error('\t - RESPONSE ERROR:',error,options);
                     retryRequest();
                 });
             })
@@ -213,7 +223,6 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
             request.on('error', (error) => {
 
                 console.log("\t - HTTP Error: -- Connection Reset --");
-
                 retryRequest();
             });
             
@@ -284,7 +293,8 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
     var pagenum = 1;
     async function onRequestComplete(data)
     {
-        //console.log('... Response <=')
+        // console.log('... Response <=')
+        // console.log(data);
         data = String(data);
 
         if(debugging) {
@@ -301,14 +311,6 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
 
         const $ = cheerio.load(data);
         
-        let noResultsImage = $(".mnr-c");//checking for the no results page. .mnr-c is the first div that selected it.
-        if (noResultsImage.length > 0){
-            console.error("\t - Error: -- No matches --")
-            pagenum = 1;
-            createRequestOptions(true,false,true);
-            return;
-        }
-
         let scrapedleads = [];
 
 
@@ -325,90 +327,12 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
         */
 
 
-        // This code scrapes linkedin profiles from google search results.
-        
-        let element;
-        let link;
-        let headline;
-        let details;
-        let stub;
-        let items = $(".Gx5Zad.fP1Qef.xpd.EtOod.pkphOe");
-        if (items.length > 0) {
-            
-            if(debugging) console.log("debugging: searchitems = " + searchitems.length)
-            for(let i=0; i < items.length; i++)
-            {
- 
-                element = items[i];
-                link = $(element).find(".egMi0").find("a").attr('href');
-                link = link.substring(link.indexOf('=')+1,link.indexOf('&'));
-                headline = $(element).find(".egMi0").find("h3").text();
-                details = ""
-                stub = $(element).find(".BNeawe.s3v9rd.AP7Wnd > div > div > div").text();
+        //parseGoogleResults(data);
+        //parseCambridgeDirectory(data);
+        parseETHZurichDirectory(data);
 
-                let newlead = createDataObject(link,headline,details,stub);
-
-                
-                if(newlead) scrapedleads.push(newlead);
-            }
-        }
-        
-        //Write any data we have found.
-        if(scrapedleads.length > 0)
-        {
-            await writeData(scrapedleads);
-            scrapedleads = [];
-        }
-        else
-        {
-            console.log("\t - No matching data.")
-        }
-
-        //Now that we have finished withe page,
-        //we need to figure out how to proceed.
-        //examine the footer for paging info.
-        //is Is his the last page?  What page are we on?
-
-        let footerbutton = $(".nBDE1b.G5eFlf");
-        let buttontext = footerbutton.text().trim();
-        let arrow = (buttontext.substring(buttontext.length -1));
-        let retry = false;
-        let start = true;
-        switch(arrow)
-        {
-            case ">":
-                pagenum++;
-                lastpage = false;
-                retry = true;
-                start = false;
-                break;
-            
-            case "<":
-                pagenum = 1;
-                lastpage = true;
-                retry = false;
-                start = true;
-                break;
-            
-            default:
-                pagenum = 1;
-                lastpage = true;
-                retry = false;
-                start = true;
-                break;
-        }
-
-        // if(data.indexOf("In order to show you the most relevant results,") > -1) {
-        //     console.log("*");
-        //     lastpage = true;
-        //     pagenum = 1;
-        //     retry = false;
-        //     start = true;
-        // }
-
-        //based on the information we gathered from the footer,
-        //this call will decide the next page we navigate to.
-        createRequestOptions(lastpage,retry,start);
+        //don't forget to call this....
+        //createRequestOptions(lastpage,retry,start);
 
         //There's nothing to return.  Our work here is done.
         return;
@@ -481,14 +405,18 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
     let outputTable = await getOutputTable();
     /** writeData(leadsToWrite as array of JSON objects) */
     async function writeData(recordsToWrite) {
-        
-        //console.log(leadsToWrite);
+        let outputTable = "output"
+
+        for(let i=0; i<recordsToWrite.length; i++){
+            if(recordsToWrite[i] == {}) recordsToWrite = recordsToWrite.splice(i, 1);
+        }
+
+        console.log(recordsToWrite); process.exit();
 
         if(recordsToWrite.length > 0)
         {
             //We're writing to a database. If the table doesn't exist, create it first.
             let sql = `CREATE TABLE IF NOT EXISTS ${outputTable} (`;
-            
             
             for(field of Object.keys(recordsToWrite[0])) {
                 sql += `${field} varchar(255),`
@@ -496,6 +424,7 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
             sql += `);`
             sql = sql.replace(`,);`,`);`)
 
+            
             let result = await execute(sql);
 
             for(let i = 0; i < recordsToWrite.length; i++)
@@ -520,13 +449,169 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
                 await insert(insertQuery);
             }
 
-            console.log("\t√ " + currentTime() + " " + recordsToWrite.length + ` records written to [scraperdata].[${outputTable}] (from page ${pagenum})` );
+            console.log("\t√ " + " " + recordsToWrite.length + ` records written to [scraperdata].[${outputTable}] (from page ${pagenum})` );
         } 
     }
 
     /** attempt the last request again with a different proxy. */
     function retryRequest() {
         createRequestOptions(true,true,false);
+    }
+
+    async function parseGoogleResults(html)
+    {
+        let scrapedleads = [];
+        const $ = cheerio.load(html);
+         // This code scrapes linkedin profiles from google search results.
+         let noResultsImage = $(".mnr-c");//checking for the no results page. .mnr-c is the first div that selected it.
+         if (noResultsImage.length > 0){
+             console.error("\t - Error: -- No matches --")
+             pagenum = 1;
+             createRequestOptions(true,false,true);
+             return;
+         }
+ 
+         let element;
+         let link;
+         let headline;
+         let details;
+         let stub;
+         let items = $(".Gx5Zad.fP1Qef.xpd.EtOod.pkphOe");
+         if (items.length > 0) {
+             
+             if(debugging) console.log("debugging: searchitems = " + searchitems.length)
+             for(let i=0; i < items.length; i++)
+             {
+  
+                 element = items[i];
+                 link = $(element).find(".egMi0").find("a").attr('href');
+                 link = link.substring(link.indexOf('=')+1,link.indexOf('&'));
+                 headline = $(element).find(".egMi0").find("h3").text();
+                 details = ""
+                 stub = $(element).find(".BNeawe.s3v9rd.AP7Wnd > div > div > div").text();
+ 
+                 let newlead = createDataObject(link,headline,details,stub);
+ 
+                 
+                 if(newlead) scrapedleads.push(newlead);
+             }
+         }
+         
+         //Write any data we have found.
+         if(scrapedleads.length > 0)
+         {
+             await writeData(scrapedleads);
+             scrapedleads = [];
+         }
+         else
+         {
+             console.log("\t - No matching data.")
+         }
+ 
+         //Now that we have finished withe page,
+         //we need to figure out how to proceed.
+         //examine the footer for paging info.
+         //is Is his the last page?  What page are we on?
+ 
+         let footerbutton = $(".nBDE1b.G5eFlf");
+         let buttontext = footerbutton.text().trim();
+         let arrow = (buttontext.substring(buttontext.length -1));
+         let retry = false;
+         let start = true;
+         switch(arrow)
+         {
+             case ">":
+                 pagenum++;
+                 lastpage = false;
+                 retry = true;
+                 start = false;
+                 break;
+             
+             case "<":
+                 pagenum = 1;
+                 lastpage = true;
+                 retry = false;
+                 start = true;
+                 break;
+             
+             default:
+                 pagenum = 1;
+                 lastpage = true;
+                 retry = false;
+                 start = true;
+                 break;
+         }
+ 
+         // if(data.indexOf("In order to show you the most relevant results,") > -1) {
+         //     console.log("*");
+         //     lastpage = true;
+         //     pagenum = 1;
+         //     retry = false;
+         //     start = true;
+         // }
+ 
+         //based on the information we gathered from the footer,
+         //this call will decide the next page we navigate to.
+         createRequestOptions(lastpage,retry,start);
+    }
+
+    async function parseCambridgeDirectory(html) {
+
+        const $ = cheerio.load(html);
+
+        let name = $(".campl-recessed-sub-title .campl-sub-title"); 
+        name = $(name).text();
+        let title = $(".cst-job-titles ul li")[0];
+        title = $(title).text();
+        let phone = $("#block-ds-extras-sd-contact .field-name-field-sd-office-phone .field-item")[0];
+        phone = $(phone).text();
+        let email = $("#block-ds-extras-sd-contact .field-name-field-sd-email-text .field-item")[0];
+        email = $(email).text();
+
+        let data = {
+            "name":name,
+            "company":"Cambridge University - Computer Science Dept.",
+            "title":title,
+            "phone":phone,
+            "email":email
+        }
+
+        writeData([data]);
+        createRequestOptions(true,false,true);
+    }
+
+    async function parseETHZurichDirectory(html) {
+        let $=cheerio.load(html);
+        let data = [];
+
+        let tableRows = $("tr");
+        for(let tr = 0; tr < tableRows.length; tr++){
+            
+            let cells = $(tableRows[tr]).find("td");
+            
+            let dataitem = {};
+            for(let c = 0; c < cells.length; c++) {
+
+                let prefix = $(cells[0]).text();
+                let email = $($(cells[1]).find("a")[1]).text();
+                let name = prefix + $(cells[1]).find("a").text().replace(email,"").replace("&nbsp;", " ");
+                let phone = $(cells[2]).text();
+                let title = $(cells[4]).find("a").text().trim();
+
+                dataitem = {
+                    "name":name,
+                    "email":email,
+                    "phone":phone,
+                    "title":title,
+                    "company":"ETH Zurich"
+                }
+            }
+            data.push(dataitem);
+            console.log(dataitem);
+        }
+
+        writeData(data);
+        createRequestOptions(true,false,true);
     }
 
 })();
