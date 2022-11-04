@@ -411,7 +411,7 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
             if(recordsToWrite[i] == {}) recordsToWrite = recordsToWrite.splice(i, 1);
         }
 
-        console.log(recordsToWrite); process.exit();
+        //console.log(recordsToWrite); process.exit();
 
         if(recordsToWrite.length > 0)
         {
