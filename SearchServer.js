@@ -19,8 +19,6 @@ let nextQueryIndex = 0;
 let nextAgentIndex = 0;
 
 
-
-
 const args = process.argv;
 if(args.length == 2)
 {
@@ -41,44 +39,45 @@ const requestListener = function (req, res) {
     case '/':
       break;
     case '/query':
-      data.type = "newquery";
-      data.query = getQuery();
-      data.proxy = getProxy();
-      data.agent = getAgent();
-      //console.log(JSON.stringify(data));
-      break;
+		data.type = "newquery";
+		data.query = getQuery();
+		data.proxy = getProxy();
+		data.agent = getAgent();
+		//console.log(JSON.stringify(data));
+		break;
     case '/proxy':
-      data.type = "newproxy";
-      data.proxy = getProxy();
-      data.agent = getAgent();
-      break;
+		data.type = "newproxy";
+		data.proxy = getProxy();
+		data.agent = getAgent();
+		break;
     case '/agent':
-      data.type = "newagent"
-      data.agent = getAgent();
-      break;
+		data.type = "newagent"
+		data.agent = getAgent();
+		break;
     case '/reset':
-      nextQueryIndex = 0;
-      proxyList = [];
-      loadProxies();
-      nextProxyIndex = 0;
-      data.type = "response"
-      data.message = "Queries and Proxies have been reset." 
-      break;
+		nextQueryIndex = 0;
+		proxyList = [];
+		loadProxies();
+		nextProxyIndex = 0;
+		data.type = "response"
+		data.message = "Queries and Proxies have been reset." 
+		break;
     case '/output':
-      data.type = "result"
-      data.message = getTargetTable();
-      break;
+		data.type = "result"
+		data.message = getTargetTable();
+		break;
     case '/task':
-      data.task = TASK;
+		data.type = "task";
+		data.task = getNextTask();
       break;
     case '/target':
-      let targetdata = getTarget();
-      data.type = "target";
-      data.query = targetdata.url;
-      data.target = targetdata.target;
-      data.proxy = getProxy();
-      data.agent = getAgent();
-      break;
+		let targetdata = getTarget();
+		data.type = "target";
+		data.query = targetdata.url;
+		data.target = targetdata.target;
+		data.proxy = getProxy();
+		data.agent = getAgent();
+		break;
     }
 
   data = JSON.stringify(data);
@@ -88,7 +87,7 @@ const requestListener = function (req, res) {
       'content-length':data.length
     });
   res.end(data);
-  if(data.query == "eof") {
+  if(data.query == "EOF") {
     process.exit();
   }
 }
@@ -98,23 +97,22 @@ const requestListener = function (req, res) {
 //let query = "select distinct company from dao_companies"
 let query = "select * from scraperdata.vw_scraper_datasource";
 
-initilizeData(query)
-.then(() => {
-  /** start listening */
-  const portnumber = 8888;
-  const server = http.createServer(requestListener);
-  server.listen(portnumber);
-  console.log(`Listening on port ${portnumber}.`);
+initilizeData(query);
 
-  // for(let i = 0; i<5; i++) {
-  //   console.log(sqldata[i]);
-  // }
-  // console.log(getTarget());
-  // console.log(getTarget());
-  // console.log(getTarget());
-  // console.log(getTarget());
-  // console.log(getTarget());
-});
+/** start listening */
+const portnumber = 8888;
+const server = http.createServer(requestListener);
+server.listen(portnumber);
+console.log(`Listening on port ${portnumber}.`);
+
+// for(let i = 0; i<5; i++) {
+//   console.log(sqldata[i]);
+// }
+// console.log(getTarget());
+// console.log(getTarget());
+// console.log(getTarget());
+// console.log(getTarget());
+// console.log(getTarget());
 
 async function getSqlData(sqlQuery) {
   console.log("Getting sql data... Please wait.");
@@ -137,16 +135,24 @@ async function getSqlData(sqlQuery) {
  */
 async function initilizeData(sqlQuery) {
 
+	querylist = await getSqlData(sqlQuery)
+
+	return;
 
   //If a searchfile is used, then we can just return the lines from the file to the scraper.
   //but if it's a google search, the url needs to be constructed.
+  //
+  //
+  // Now, if we are using a search file, I want to read in every line like an array so I
+  // can attach data to a particular url. I will return javascript objects instead of URLS.
+
   if (USESEARCHFILE) {
     //Read the file into an array of lines called urls.
     let searchfile = "searchlist.txt";
     let lines = String(fs.readFileSync(searchfile));
     urls = String(lines).split('\n');
   
-    //we only want to return urls, so remove any empty lines the urls array.
+    //remove any empty lines the urls array.
     for(let i = urls.length -1; i >= 0; i--) {
       //if the line is empty
       if(String(urls[i]).trim().length == 0) {
@@ -159,7 +165,7 @@ async function initilizeData(sqlQuery) {
     
     //The list of urls is stored in a global variable called querylist
     //to be called by the scraper.
-    querylist = urls;
+    querylist = JSON.parse("searchlist.json");
 
     //And now the querylist is ready to be served to the scrapers.
 
@@ -274,17 +280,22 @@ function historicalSearch(topic) {
 
 
 function getTarget() {
-  let listLength = querylist.length
-
   if(nextQueryIndex >= querylist.length){
     console.log("   *** END OF SEARCH ***   ");
-    return "eof"
+    return "EOF"
   }  
-
   let target = sqldata[nextQueryIndex].person;
   let query = getQuery().replace("site%3Alinkedin.com%2Fin++","");
   nextQueryIndex++;
   return {"query":query, "target":target}
+}
+
+function getNextTask() {
+  if(nextQueryIndex >= querylist.length) {
+    return "EOF"
+  }
+  let task = JSON.parse(querylist[nextQueryIndex]);
+  return task;
 }
 
 function getQuery() {
@@ -293,14 +304,15 @@ function getQuery() {
 
   if(nextQueryIndex >= querylist.length){
     console.log("   *** END OF SEARCH ***   ");
-    return "eof"
+    return "EOF"
   }
 
   if(USESEARCHFILE)
   {
-    //If we're using a searchfile, the item in the querylist is just a URL
+    //If we're using a searchfile, the item in the querylist is a JSON object.
+
     console.log(`${currentTime()} : ${nextQueryIndex + 1} of ${listLength} : ${querylist[nextQueryIndex]}...`);
-    query = querylist[nextQueryIndex]
+    query = querylist[nextQueryIndex].url
   }
   else
   {
@@ -321,8 +333,8 @@ function getQuery() {
     }
     
     //just for output...
-    let snip1 = fixed.toString().substr(0,20);
-    let snip2 = variable.toString().substr(0,20);
+    let snip1 = fixed.toString().substr(0,30);
+    let snip2 = variable.toString().substr(0,30);
 
     console.log(`${currentTime()} : ${nextQueryIndex + 1} of ${listLength} : ${snip1}...  ${snip2}...`);
     query = url;

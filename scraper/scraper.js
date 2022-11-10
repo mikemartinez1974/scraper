@@ -16,105 +16,52 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
     let nextUrl = "http://localhost:8888/query";
     let nextProxy;
     let nextAgent;
-    createRequestOptions(false, false, true);
-    
-    /**ask what task we are performing. For now, only linkedin is supported. */
-    async function getTask(){
-        let url = "http://localhost:8888/task"
-        if(debugging) console.log("getNextQuery()");
-        
-        let response = await axios.get(url);
-        if (response.err) {console.log(response.err.code);}
-        else { return response.data.query};
-    }
-    
-    /** request the next search */
-    async function getNextQuery(){
-        let url = "http://localhost:8888/query"
-        if(debugging) console.log("getNextQuery()");
-        
-        let response = await axios.get(url);
-        if (response.err) {
-            console.log("\t - Error: -- Axios Response Error in getNextQuery()");
-        }
-        else { 
-            let q = response.data.query;
-            try{
-                if(q.match(/&numitems=\d{1,3}$/)){
-                    pagesize = q.match(/\d{1,3}/)
-                }
-            }catch(e) {
+    let nextTask;
+    begin();
 
-            }
+    function begin(data) {
+
+        if(data != undefined)
+            returnData(data);
             
-            nextUrl = q;
-
-            return q;
-        };
+        createRequestOptions();
     }
 
-    /**returns next "proxyhost:port" from the server.
-    * ex: proxy6.infatica.com:2309 */
-    async function getNextProxy(){
-        let url = "http://localhost:8888/proxy"
-        if(debugging) console.log("getNextProxy()");
+    function returnData(data){
+        if(data != undefined){
+            //do something with the data,
+            let newRecords = evaluate(data);
+            writeData(newRecords)
+            nextTask = getNextTask();
+        }else{
+            nextTask = nextTask;
+        }
+    }
+    
+    async function createRequestOptions(retry = false) {
         
-        let response = await axios.get(url);
-        if (response.err) {console.log(response.err.code);}
-        else { return response.data.proxy};
-    }
-
-    async function getNextAgent(){
-        let url = "http://localhost:8888/agent"
-        if(debugging) console.log("getNextAgent()");
-        let response = await axios.get(url);
-        if (response.err) {console.log(response.err.code);}
-        else { return response.data.agent};
-    }
-
-    async function getOutputTable(){
-        let url = "http://localhost:8888/output"
-        let response = await axios.get(url);
-        if (response.err) {console.log(response.err.code);}
-        else { return response.data.message};
-    }
-
-    async function createRequestOptions(lastpage = true, retry = false, start = true) {
         
-        let url;
-        let action = "";
-        //console.log(`createRequestOptions(${lastpage}, ${retry}, ${start})`);
+        makeRequest();
+    }
 
-        if((retry == true)){
-            start = false;
-            //action = "\t- Retrying: Page " + pagenum;
-            //console.log("\t- Retrying: ");
-        } 
 
-        if (start == true) 
-        {
-            nextUrl = await getNextQuery();
-            console.log("\n" + currentTime() + " + New Search: " + nextUrl);
-            pagenum  = 1;
+
+    /** Executes a search and sends the html to onRequestComplete() */
+    async function makeRequest() {
+
+        if(nextTask == "EOF"){
+            console.log('Search Completed.')
+            process.exit();
         }
 
         nextProxy = await getNextProxy();
         nextAgent = await getNextAgent();
-        if(nextUrl == "eof"){
-            console.log('Search Completed.')
-            process.exit();
-            return;
-        }
 
-        if(pagenum == 1) {
-            url = nextUrl;
-        }
-        else {
-            url = nextUrl + "&start=" + ((pagenum - 1) * pagesize);
-        }
+        console.log("\n" + currentTime() + " + Next Page: " + nextTask.url);
+
+        let url = nextTask.url
 
         let options = {}
-        
         if(useProxies == true) {
             //nextProxy = "geo.iproyal.com:22323:googlescraper521:googlescraper521"
             let proxy = nextProxy.split(":");
@@ -140,23 +87,8 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
             options.headers.Agent = nextAgent;
         }
         else {
-            if(nextUrl.indexOf("https://") > -1)
-            {
-
-                options = url || nextUrl;
-            
-            }
-            else
-            {
-                options = url || nextUrl;
-            }
+            options.path = url
         }
-
-        makeRequest(options);
-    }
-
-    /** Executes a search and sends the html to onRequestComplete() */
-    function makeRequest(options) {
 
         if (debugging) {
             console.warn("makeRequest()");
@@ -230,66 +162,6 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
         }
     }
 
-    function pageHasErrors(data)
-    {
-
-        if(data.indexOf('<title>400 Bad Request</title>') >= 0)
-        {
-            console.error("\t - Error: -- BAD REQUEST --");
-            return true;
-        }
-
-        if(data.indexOf('Our systems have detected unusual traffic') >= 0 )
-        {
-            console.error("\t - Error: -- Unusual Traffic --");
-            return true;
-        }
-
-        if(data.indexOf('<TITLE>302 Moved</TITLE>') >= 0 )
-        {
-            console.error("\t - Error: -- Document Moved --");
-            return true;
-        }
-
-        if(data.indexOf('connect: connection refused') >= 0 )
-        {
-            console.error("\t - Error: -- Connection Refused --");
-            return true;
-        }
-
-        if(data.indexOf(': username/password authentication failed') >= 0) {
-            console.error("\t - Error: -- Proxy Authentication Failure -- ");
-            return true;
-        }
-
-        if(data.indexOf(': unknown error connection refused') >= 0) {
-            console.error("\t - Error: -- Unknown error or Connection Refused --");
-            return true;
-        }
-
-        if(data.indexOf('- non ha prodotto risultati in nessun documento.') >= 0) {
-            console.error("\t - Error: -- No Matching Documents --");
-            return true;
-        }
-
-        if(data.indexOf(': EOF') >= 0) {
-            console.error("\t - Error: -- EOF --");
-            return true;
-        }
-
-        if(data.indexOf('403 Status Forbidden') >= 0) {
-            console.error("\t - Error: -- Forbidden --");
-            return true;
-        }
-
-        if(data.indexOf('Proxy Authentication Required') >= 0) {
-            console.error("\t - Error: -- Proxy Authentication Required --");
-            return true;
-        }
-
-        return false;
-    }
-
     var pagenum = 1;
     async function onRequestComplete(data)
     {
@@ -309,35 +181,153 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
             return;
         } 
 
-        const $ = cheerio.load(data);
-        
-        let scrapedleads = [];
-
-
-        //This code parses data from a schools list.
-        /*
-        let items = $("h2.h4.font-weight-bold");
-        let text = "";
-        let link = "";
-        for(let item of items) {
-            link = $(item).find("a");
-            text = link.text();
-            scrapedleads.push({ "school" : text})
-        }
-        */
-
-
-        //parseGoogleResults(data);
-        //parseCambridgeDirectory(data);
-        parseETHZurichDirectory(data);
-
-        //don't forget to call this....
-        //createRequestOptions(lastpage,retry,start);
+        returnData(data);
 
         //There's nothing to return.  Our work here is done.
         return;
-
+        
     }
+
+        function pageHasErrors(data)
+        {
+
+            if(data.indexOf('<title>400 Bad Request</title>') >= 0)
+            {
+                console.error("\t - Error: -- BAD REQUEST --");
+                return true;
+            }
+
+            if(data.indexOf('Our systems have detected unusual traffic') >= 0 )
+            {
+                console.error("\t - Error: -- Unusual Traffic --");
+                return true;
+            }
+
+            if(data.indexOf('<TITLE>302 Moved</TITLE>') >= 0 )
+            {
+                console.error("\t - Error: -- Document Moved --");
+                return true;
+            }
+
+            if(data.indexOf('connect: connection refused') >= 0 )
+            {
+                console.error("\t - Error: -- Connection Refused --");
+                return true;
+            }
+
+            if(data.indexOf(': username/password authentication failed') >= 0) {
+                console.error("\t - Error: -- Proxy Authentication Failure -- ");
+                return true;
+            }
+
+            if(data.indexOf(': unknown error connection refused') >= 0) {
+                console.error("\t - Error: -- Unknown error or Connection Refused --");
+                return true;
+            }
+
+            if(data.indexOf('- non ha prodotto risultati in nessun documento.') >= 0) {
+                console.error("\t - Error: -- No Matching Documents --");
+                return true;
+            }
+
+            if(data.indexOf(': EOF') >= 0) {
+                console.error("\t - Error: -- EOF --");
+                return true;
+            }
+
+            if(data.indexOf('403 Status Forbidden') >= 0) {
+                console.error("\t - Error: -- Forbidden --");
+                return true;
+            }
+
+            if(data.indexOf('Proxy Authentication Required') >= 0) {
+                console.error("\t - Error: -- Proxy Authentication Required --");
+                return true;
+            }
+
+            return false;
+        }
+
+        function evaluate(htmlData) {
+
+            const $ = cheerio.load(htmlData);
+            
+            let newRecords = [];      
+            
+            //get your records into new Records and hand off to writedata.
+            
+            newRecords = findEmailOnPage(htmlData);
+            nextTask.email = newRecords
+            return newRecords;
+            
+            //parseGoogleResults(data);
+            //parseCambridgeDirectory(data);
+            //parseETHZurichDirectory(data);
+    
+            //This code parses data from a schools list.
+            /*
+            // let items = $("h2.h4.font-weight-bold");
+            // let text = "";
+            // let link = "";
+            // for(let item of items) {
+            //     link = $(item).find("a");
+            //     text = link.text();
+            //     scrapedleads.push({ "school" : text})
+            // }
+            */
+
+        }
+
+        let outputTable = await getOutputTable();
+        /** writeData(leadsToWrite as array of JSON objects) */
+        async function writeData(recordsToWrite) {
+            let outputTable = "output"
+    
+            for(let i=0; i<recordsToWrite.length; i++){
+                if(recordsToWrite[i] == {}) recordsToWrite = recordsToWrite.splice(i, 1);
+            }
+    
+            //console.log(recordsToWrite); process.exit();
+    
+            if(recordsToWrite.length > 0)
+            {
+                //We're writing to a database. If the table doesn't exist, create it first.
+                let sql = `CREATE TABLE IF NOT EXISTS ${outputTable} (`;
+                
+                for(field of Object.keys(recordsToWrite[0])) {
+                    sql += `${field} varchar(255),`
+                }
+                sql += `);`
+                sql = sql.replace(`,);`,`);`)
+    
+                
+                let result = await execute(sql);
+    
+                for(let i = 0; i < recordsToWrite.length; i++)
+                {
+                    //console.log(leadsToWrite[i]);
+    
+                    let lead = recordsToWrite[i];
+                    let insertQuery = `insert into scraperdata.\`${outputTable}\` ( `;
+                    for(let field of Object.keys(lead)) {
+                        insertQuery += `${field}, `
+                    }
+                    insertQuery += `) `
+                    insertQuery = replaceAll(insertQuery,", )"," ) ");
+                    insertQuery += ` values (`;
+                    for(let value of Object.values(lead)) {
+    
+                        insertQuery += `"${value}", `
+                    }
+                    insertQuery += `) `
+                    insertQuery = replaceAll(insertQuery, ", )" , " ) ");
+    
+                    await insert(insertQuery);
+                }
+    
+                console.log("\t√ " + " " + recordsToWrite.length + ` records written to [scraperdata].[${outputTable}] (from page ${pagenum})` );
+            } 
+        }
 
     /** stores scraped data from the last search in an object array called ScrapedLeads */
     let requireEmail = false;
@@ -402,61 +392,79 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
         }
     }
 
-    let outputTable = await getOutputTable();
-    /** writeData(leadsToWrite as array of JSON objects) */
-    async function writeData(recordsToWrite) {
-        let outputTable = "output"
-
-        for(let i=0; i<recordsToWrite.length; i++){
-            if(recordsToWrite[i] == {}) recordsToWrite = recordsToWrite.splice(i, 1);
-        }
-
-        //console.log(recordsToWrite); process.exit();
-
-        if(recordsToWrite.length > 0)
-        {
-            //We're writing to a database. If the table doesn't exist, create it first.
-            let sql = `CREATE TABLE IF NOT EXISTS ${outputTable} (`;
-            
-            for(field of Object.keys(recordsToWrite[0])) {
-                sql += `${field} varchar(255),`
-            }
-            sql += `);`
-            sql = sql.replace(`,);`,`);`)
-
-            
-            let result = await execute(sql);
-
-            for(let i = 0; i < recordsToWrite.length; i++)
-            {
-                //console.log(leadsToWrite[i]);
-
-                let lead = recordsToWrite[i];
-                let insertQuery = `insert into scraperdata.\`${outputTable}\` ( `;
-                for(let field of Object.keys(lead)) {
-                    insertQuery += `${field}, `
-                }
-                insertQuery += `) `
-                insertQuery = replaceAll(insertQuery,", )"," ) ");
-                insertQuery += ` values (`;
-                for(let value of Object.values(lead)) {
-
-                    insertQuery += `"${value}", `
-                }
-                insertQuery += `) `
-                insertQuery = replaceAll(insertQuery, ", )" , " ) ");
-
-                await insert(insertQuery);
-            }
-
-            console.log("\t√ " + " " + recordsToWrite.length + ` records written to [scraperdata].[${outputTable}] (from page ${pagenum})` );
-        } 
-    }
-
     /** attempt the last request again with a different proxy. */
     function retryRequest() {
-        createRequestOptions(true,true,false);
+        createRequestOptions(true);
+    } 
+
+    /**ask what task we are performing. For now, only linkedin is supported. */
+    async function getNextTask(){
+        let url = "http://localhost:8888/task"
+        if(debugging) console.log("getNextTask()");
+        let response = await axios.get(url);
+        if (response.err) {console.log(response.err.code);}
+        else { return response.data};
+        //response.data is a collection of json objects.
     }
+
+        /** request the next search */
+        async function getNextQuery(){
+            let url = "http://localhost:8888/query"
+            if(debugging) console.log("getNextQuery()");
+            
+            let response = await axios.get(url);
+            if (response.err) {
+                console.log("\t - Error: -- Axios Response Error in getNextQuery()");
+            }
+            else { 
+                let q = response.data.query;
+                try{
+                    if(q.match(/&numitems=\d{1,3}$/)){
+                        pagesize = q.match(/\d{1,3}/)
+                    }
+                }catch(e) {
+
+                }
+                
+                nextUrl = q;
+
+                return q;
+            };
+        }
+
+        /**returns next "proxyhost:port" from the server.
+        * ex: proxy6.infatica.com:2309 */
+        async function getNextProxy(){
+            let url = "http://localhost:8888/proxy"
+            if(debugging) console.log("getNextProxy()");
+            
+            let response = await axios.get(url);
+            if (response.err) {console.log(response.err.code);}
+            else { return response.data.proxy};
+        }
+
+        async function getNextAgent(){
+            let url = "http://localhost:8888/agent"
+            if(debugging) console.log("getNextAgent()");
+            let response = await axios.get(url);
+            if (response.err) {console.log(response.err.code);}
+            else { return response.data.agent};
+        }
+
+        async function getOutputTable(){
+            let url = "http://localhost:8888/output"
+            let response = await axios.get(url);
+            if (response.err) {console.log(response.err.code);}
+            else { return response.data.message};
+        }
+
+
+
+
+
+    
+
+
 
     async function parseGoogleResults(html)
     {
@@ -467,7 +475,7 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
          if (noResultsImage.length > 0){
              console.error("\t - Error: -- No matches --")
              pagenum = 1;
-             createRequestOptions(true,false,true);
+             createRequestOptions();
              return;
          }
  
@@ -496,18 +504,11 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
                  if(newlead) scrapedleads.push(newlead);
              }
          }
-         
-         //Write any data we have found.
-         if(scrapedleads.length > 0)
-         {
-             await writeData(scrapedleads);
-             scrapedleads = [];
-         }
-         else
-         {
-             console.log("\t - No matching data.")
-         }
+
+         returnData(scrapedleads)
+         //createRequestOptions();
  
+         return;
          //Now that we have finished withe page,
          //we need to figure out how to proceed.
          //examine the footer for paging info.
@@ -577,7 +578,7 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
         }
 
         writeData([data]);
-        createRequestOptions(true,false,true);
+        createRequestOptions();
     }
 
     async function parseETHZurichDirectory(html) {
@@ -614,5 +615,10 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
         createRequestOptions(true,false,true);
     }
 
+    function findEmailOnPage(html) {
+        let mailRegex = /^[A-Za-z0-9_!#$%&'*+\/=?`{|}~^.-]+@[A-Za-z0-9.-]+$/gm
+        return String(html).match(mailRegex);
+
+    }
 })();
 
