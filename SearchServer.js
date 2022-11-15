@@ -68,7 +68,9 @@ const requestListener = function (req, res) {
 		break;
     case '/task':
 		data.type = "task";
-		data.task = getNextTask();
+      let taskdata = getNextTask();
+      console.log(taskdata);
+		data = taskdata;
       break;
     case '/target':
 		let targetdata = getTarget();
@@ -105,9 +107,10 @@ const server = http.createServer(requestListener);
 server.listen(portnumber);
 console.log(`Listening on port ${portnumber}.`);
 
-// for(let i = 0; i<5; i++) {
-//   console.log(sqldata[i]);
-// }
+console.log("Here's what I'm serving.")
+for(let i = 0; i<5; i++) {
+  console.log(sqldata[i]);
+}
 // console.log(getTarget());
 // console.log(getTarget());
 // console.log(getTarget());
@@ -125,7 +128,8 @@ async function getSqlData(sqlQuery) {
   retval = await execute(sqlQuery);
   sqldata = retval;  //save an extra copy of it, just in case.
   sqldata.reverse(); //the querylist will be reversed in processing, so this allows to rows to match up.
-  if(debugging) console.log("getCompanies() returns: \r" + retval[10]);
+  //if(debugging) console.log("getCompanies() returns: \r" + retval[10]);
+  console.log("Rows: " + retval.length)
   return retval;
 }
 
@@ -137,6 +141,7 @@ async function initilizeData(sqlQuery) {
 
 	querylist = await getSqlData(sqlQuery)
 
+  console.log(querylist);
 	return;
 
   //If a searchfile is used, then we can just return the lines from the file to the scraper.
@@ -278,7 +283,6 @@ function historicalSearch(topic) {
 //historicalSearch("Trump");
 //console.log(historicalSearches);
 
-
 function getTarget() {
   if(nextQueryIndex >= querylist.length){
     console.log("   *** END OF SEARCH ***   ");
@@ -294,7 +298,7 @@ function getNextTask() {
   if(nextQueryIndex >= querylist.length) {
     return "EOF"
   }
-  let task = JSON.parse(querylist[nextQueryIndex]);
+  let task = querylist[nextQueryIndex++];
   return task;
 }
 
@@ -307,7 +311,7 @@ function getQuery() {
     return "EOF"
   }
 
-  if(USESEARCHFILE)
+  if(true)
   {
     //If we're using a searchfile, the item in the querylist is a JSON object.
 
@@ -359,6 +363,7 @@ function getProxy() {
 }
 
 function getAgent() {
+  //nextAgentIndex = 1;
   let agent = AGENT_LIST[nextAgentIndex];
   nextAgentIndex++;
   if(nextAgentIndex >= (AGENT_LIST.length -1)) {

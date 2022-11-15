@@ -203,3 +203,48 @@ function currentDate(){
     y = ("0000" + y).slice(-4)
     return `${m}/${d}/${y}`; 
 }
+
+Object.defineProperty(global, '__stack', {
+    get: function() {
+            var orig = Error.prepareStackTrace;
+            Error.prepareStackTrace = function(_, stack) {
+                return stack;
+            };
+            var err = new Error;
+            Error.captureStackTrace(err, arguments.callee);
+            var stack = err.stack;
+            Error.prepareStackTrace = orig;
+            return stack;
+        }
+    });
+    
+Object.defineProperty(global, '__line', {
+get: function() {
+        return __stack[1].getLineNumber();
+    }
+});
+
+Object.defineProperty(global, '__function', {
+get: function() {
+        return __stack[1].getFunctionName();
+    }
+});
+    
+function getCaller() {
+    return({line:__line, function:__function})
+    console.log(__line);
+    console.log(__function);
+}
+
+module.exports = {
+     getCaller : getCaller
+    ,replaceAll : replaceAll
+}
+
+
+// function foo() {
+//     console.log(__line);
+//     console.log(__function);
+// }
+
+// foo()

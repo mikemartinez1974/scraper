@@ -7,8 +7,19 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const cheerio = require('cheerio');
-eval(fs.readFileSync('c:/users/michael/documents/sourcecode/utils/utils.js')+'');
-eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+'');
+const utils = require('./../utils')
+const myRegex = require('./myRegex');
+const myRequests = require('./myRequests')
+
+const MYSQL = require('mysql2');
+let host = "localhost";
+let port = 9999;
+let database = "scraperdata";
+let user = "Mike";
+let pass = "[Mysql521]";
+let mysql = MYSQL.createConnection({"host":host,"port":port,"database":database,"user":user,"password":pass});
+
+
 
 (async () => {
 
@@ -16,318 +27,289 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
     let nextUrl = "http://localhost:8888/query";
     let nextProxy;
     let nextAgent;
-    let nextTask;
+    let currentTask;
+
+    //let task = await getNextTask();
     begin();
 
-    function begin(data) {
+    function begin() {
 
-        if(data != undefined)
-            returnData(data);
+        getNextTask();
+    }
+
+    function getNextTask () {
+ 
+        mysql.execute("call get_next()",(err,result)=>{
+            if(err) {
+                console.log(err.message)
+                process.exit();
+            } else {
+                currentTask = result[0][0];
+                makeRequest(currentTask);
+            }
             
-        createRequestOptions();
+        })
     }
-
-    function returnData(data){
-        if(data != undefined){
-            //do something with the data,
-            let newRecords = evaluate(data);
-            writeData(newRecords)
-            nextTask = getNextTask();
-        }else{
-            nextTask = nextTask;
-        }
-    }
-    
-    async function createRequestOptions(retry = false) {
-        
-        
-        makeRequest();
-    }
-
 
 
     /** Executes a search and sends the html to onRequestComplete() */
-    async function makeRequest() {
+    async function makeRequest(task,retry) {
+        //if(!retry) console.log("\n\t" + task.name + " of " + task.country + " with " + task.company);
 
-        if(nextTask == "EOF"){
+        if(task == "EOF"){
             console.log('Search Completed.')
             process.exit();
         }
 
-        nextProxy = await getNextProxy();
-        nextAgent = await getNextAgent();
-
-        console.log("\n" + currentTime() + " + Next Page: " + nextTask.url);
-
-        let url = nextTask.url
-
-        let options = {}
-        if(useProxies == true) {
-            //nextProxy = "geo.iproyal.com:22323:googlescraper521:googlescraper521"
-            let proxy = nextProxy.split(":");
-            
-            if(proxy.length > 2)
-            {
-                //options.host = nextProxy;
-                options.host = proxy[0];
-                options.port = parseInt(proxy[1]);
-                options.username = proxy[2];
-                options.password = proxy[3]; 
+        try{
+            if(task.url.trim() == "") {
+                getNextTask();
+                return;
             }
-            else
-            {
-                options.host = proxy[0];
-                options.port = parseInt(proxy[1]);
-                
-            }
-            
-            options.path = url;
-            options.headers = {};
-            options.headers.Host = "www.google.com";
-            options.headers.Agent = nextAgent;
+        }catch(e) {
+            console.log("Finished.")
+            process.exit();
         }
-        else {
-            options.path = url
-        }
-
-        if (debugging) {
-            console.warn("makeRequest()");
-            console.log(options);
-        }
-
-        let request;
         
-        let protocol = "http";
-        if(typeof options === 'string') {
-            if (options.indexOf("https://") == 0) protocol = "https"
-        }
-        else if (typeof options === 'object') {
-            if (String(options.url).indexOf("https://") == 0) protocol = "https"
-        }
+        console.log(task);
+        console.log(task.url);
 
-        if(protocol == "https"){
+        let url = new URL(task.url)
+        
+        let htmldoc = await myRequests.makeRequest(url,false,true);
+        onRequestComplete(htmldoc);
+        
+        // let options = {}
+        // if(useProxies == true) {
+        //     nextProxy = "geo.iproyal.com:12321:rongphunu:googlescraper521"
+        //     let proxy = nextProxy.split(":");
             
-            request = https.request(options, (response) => {
-                let data = '';
-                response.on('data', (chunk) => {
-                    data = data + chunk.toString();
-                });
-            
-                response.on('end', () => {
-                    onRequestComplete(data);
-                });
+        //     if(proxy.length > 2)
+        //     {
+        //         //options.host = nextProxy;
+        //         options.host = proxy[0];
+        //         options.port = parseInt(proxy[1]);
+        //         options.username = proxy[2];
+        //         options.password = proxy[3]; 
+        //     }
+        //     else {
+        //         options.host = proxy[0];
+        //         options.port = parseInt(proxy[1]);
+        //     }
+        
+        //     options.path = url.href;
+        //     options.headers = {};
+        //     options.headers.Host = "google.com"; //url.host;
+        //     options.headers.Agent = getNextAgent();
+        // }else {
+        //     options = url.href;
+        // }
 
-                response.on('error', (error) => {
-                    console.error('\t -- RESPONSE ERROR --');
-                    //console.error('\t - RESPONSE ERROR:',error,options);
-                    retryRequest();
-                });
-            })
-            
-            request.on('error', (error) => {
-                console.log("\t -- HTTPS Error: -- Connection Reset --");
-                //console.log(error);
-                retryRequest();
-            });
-            
-            request.end() 
-        }
-        else
-        {
-            //console.log('Request => ... ');
-            request = http.request(options, (response) => {
-                let data = '';
-                response.on('data', (chunk) => {
-                    data = data + chunk.toString();
-                });
-            
-                response.on('end', () => {
-                    onRequestComplete(data);
-                });
+        // let request;
 
-                response.on('error', (error) => {
-                    console.error('\t -- RESPONSE ERROR --');
-                    //console.error('\t - RESPONSE ERROR:',error,options);
-                    retryRequest();
-                });
-            })
+        // if(url.protocol == "https:"){
+        //     if(debugging) console.log("\t√\tmakeRequest('https')");
+        //     request = https.request(options, (response) => {
+        //         let data = '';
+        //         response.on('data', (chunk) => {
+        //             data = data + chunk.toString();
+        //         });
             
-            request.on('error', (error) => {
+        //         response.on('end', () => {
+        //             onRequestComplete(data);
+        //         });
 
-                console.log("\t - HTTP Error: -- Connection Reset --");
-                retryRequest();
-            });
+        //         response.on('error', (error) => {
+        //             console.error('\t -- RESPONSE ERROR --');
+        //             console.log(options);
+        //             //console.error('\t - RESPONSE ERROR:',error,options);
+        //             retryRequest();
+        //         });
+        //     })
             
-            request.end() 
-        }
+        //     request.on('error', (error) => {
+        //         console.log("\t -- HTTPS Error: -- Connection Reset --");
+        //         console.log(error);
+        //         console.log(options);
+        //         retryRequest();
+        //     });
+            
+        //     request.end() 
+        // }else if(url.protocol = "http:"){
+        //     //if(debugging) console.log("\t√\tmakeRequest('http')");
+        //     request = http.request(options, (response) => {
+        //         let data = '';
+        //         response.on('data', (chunk) => {
+        //             data = data + chunk.toString();
+        //         });
+            
+        //         response.on('end', () => {
+        //             onRequestComplete(data);
+        //         });
+
+        //         response.on('error', (error) => {
+        //             console.error('\t -- RESPONSE ERROR --');
+        //             //console.error('\t - RESPONSE ERROR:',error,options);
+        //             retryRequest();
+        //         });
+        //     })
+            
+        //     request.on('error', (error) => {
+        //         console.log("\t - HTTP Error: -- Connection Reset --");
+        //         retryRequest();
+        //     })
+            
+        //     request.end() 
+        // }
+    }
+
+
+
+
+    async function createRequestOptions(retry = false) {
+        getNextTask();
     }
 
     var pagenum = 1;
     async function onRequestComplete(data)
     {
+        if(debugging) console.log(__function,__line)
         // console.log('... Response <=')
         // console.log(data);
         data = String(data);
 
         if(debugging) {
             console.log(`onRequestComplete(data[${data.length}])`);
-            console.log("Data:")
-            console.log(data);
-            console.log("... End data.----")
+            if(data.length > 50000 ){
+                // console.log(data);
+                fs.writeFileSync("../scratch copy.htm",data)
+            } 
+
+            //console.log("Data:")
+            //console.log(data);
+            //console.log("... End data.----")
         }
 
         if(pageHasErrors(data)) {
             retryRequest();
             return;
+        }
+        else
+        {
+            returnData(data);
         } 
 
-        returnData(data);
-
-        //There's nothing to return.  Our work here is done.
-        return;
-        
+        //There's nothing to return.  Our work here is done.        
     }
 
-        function pageHasErrors(data)
+    async function returnData(data){
+        if(debugging) console.log(__function,__line)
+        if((data != undefined) && (data.length) > 0){
+            evaluate(data);
+            getNextTask();
+        }
+    }
+
+    function evaluate(htmlData) {
+        if(debugging) console.log(__function, __line);
+        //console.log("\tEvaluating HTML Data")
+        // Return your records as an array from here.  Whatever is in the objects will be written to the database.
+
+        const the_task_at_hand = require("./THE_TASK_AT_HAND")
+        
+        let newRecords = the_task_at_hand.getRecords(currentTask,htmlData);
+
+        writeData(newRecords)
+        
+        //parseGoogleResults(data);
+        //parseCambridgeDirectory(data);
+        //parseETHZurichDirectory(data);
+
+        //This code parses data from a schools list.
+        /*
+        // let items = $("h2.h4.font-weight-bold");
+        // let text = "";
+        // let link = "";
+        // for(let item of items) {
+        //     link = $(item).find("a");
+        //     text = link.text();
+        //     scrapedleads.push({ "school" : text})
+        // }
+        */
+
+    }
+
+    let outputTable = await getOutputTable();
+    /** writeData(leadsToWrite as array of JSON objects) */
+    async function writeData(recordsToWrite) {
+        if(debugging) console.log(__function,__line);
+        let outputTable = "output"
+        if(debugging)console.log("Records to Write: " + recordsToWrite.length);
+        //console.log("\n\tWriting " + recordsToWrite.length + " new records.")
+        for(let i=0; i<recordsToWrite.length; i++){
+            if(recordsToWrite[i] == {}) recordsToWrite = recordsToWrite.splice(i, 1);
+        }
+
+        //console.log(recordsToWrite); process.exit();
+
+        if(recordsToWrite.length > 0)
         {
-
-            if(data.indexOf('<title>400 Bad Request</title>') >= 0)
-            {
-                console.error("\t - Error: -- BAD REQUEST --");
-                return true;
-            }
-
-            if(data.indexOf('Our systems have detected unusual traffic') >= 0 )
-            {
-                console.error("\t - Error: -- Unusual Traffic --");
-                return true;
-            }
-
-            if(data.indexOf('<TITLE>302 Moved</TITLE>') >= 0 )
-            {
-                console.error("\t - Error: -- Document Moved --");
-                return true;
-            }
-
-            if(data.indexOf('connect: connection refused') >= 0 )
-            {
-                console.error("\t - Error: -- Connection Refused --");
-                return true;
-            }
-
-            if(data.indexOf(': username/password authentication failed') >= 0) {
-                console.error("\t - Error: -- Proxy Authentication Failure -- ");
-                return true;
-            }
-
-            if(data.indexOf(': unknown error connection refused') >= 0) {
-                console.error("\t - Error: -- Unknown error or Connection Refused --");
-                return true;
-            }
-
-            if(data.indexOf('- non ha prodotto risultati in nessun documento.') >= 0) {
-                console.error("\t - Error: -- No Matching Documents --");
-                return true;
-            }
-
-            if(data.indexOf(': EOF') >= 0) {
-                console.error("\t - Error: -- EOF --");
-                return true;
-            }
-
-            if(data.indexOf('403 Status Forbidden') >= 0) {
-                console.error("\t - Error: -- Forbidden --");
-                return true;
-            }
-
-            if(data.indexOf('Proxy Authentication Required') >= 0) {
-                console.error("\t - Error: -- Proxy Authentication Required --");
-                return true;
-            }
-
-            return false;
-        }
-
-        function evaluate(htmlData) {
-
-            const $ = cheerio.load(htmlData);
+            //We're writing to a database. If the table doesn't exist, create it first.
+            let sql = `CREATE TABLE IF NOT EXISTS scraperdata.${outputTable} (`;
             
-            let newRecords = [];      
-            
-            //get your records into new Records and hand off to writedata.
-            
-            newRecords = findEmailOnPage(htmlData);
-            nextTask.email = newRecords
-            return newRecords;
-            
-            //parseGoogleResults(data);
-            //parseCambridgeDirectory(data);
-            //parseETHZurichDirectory(data);
-    
-            //This code parses data from a schools list.
-            /*
-            // let items = $("h2.h4.font-weight-bold");
-            // let text = "";
-            // let link = "";
-            // for(let item of items) {
-            //     link = $(item).find("a");
-            //     text = link.text();
-            //     scrapedleads.push({ "school" : text})
-            // }
-            */
-
-        }
-
-        let outputTable = await getOutputTable();
-        /** writeData(leadsToWrite as array of JSON objects) */
-        async function writeData(recordsToWrite) {
-            let outputTable = "output"
-    
-            for(let i=0; i<recordsToWrite.length; i++){
-                if(recordsToWrite[i] == {}) recordsToWrite = recordsToWrite.splice(i, 1);
+            for(field of Object.keys(recordsToWrite[0])) {
+                sql += `${field} varchar(255),`
             }
-    
-            //console.log(recordsToWrite); process.exit();
-    
-            if(recordsToWrite.length > 0)
+            //sql = sql.substring(0,sql.lastIndexOf(","))
+            sql += `);`
+            sql = sql.replace(`,);`,`);`)
+
+            //let result = await execute(sql);
+            mysql.execute(sql);
+
+            //console.log(sql);
+            //console.log(result);
+
+            for(let i = 0; i < recordsToWrite.length; i++)
             {
-                //We're writing to a database. If the table doesn't exist, create it first.
-                let sql = `CREATE TABLE IF NOT EXISTS ${outputTable} (`;
-                
-                for(field of Object.keys(recordsToWrite[0])) {
-                    sql += `${field} varchar(255),`
+                //console.log(leadsToWrite[i]);
+
+                let lead = recordsToWrite[i];
+                let insertQuery = `insert into scraperdata.\`${outputTable}\` ( `;
+                for(let field of Object.keys(lead)) {
+                    insertQuery += `${field}, `
                 }
-                sql += `);`
-                sql = sql.replace(`,);`,`);`)
-    
-                
-                let result = await execute(sql);
-    
-                for(let i = 0; i < recordsToWrite.length; i++)
-                {
-                    //console.log(leadsToWrite[i]);
-    
-                    let lead = recordsToWrite[i];
-                    let insertQuery = `insert into scraperdata.\`${outputTable}\` ( `;
-                    for(let field of Object.keys(lead)) {
-                        insertQuery += `${field}, `
-                    }
-                    insertQuery += `) `
-                    insertQuery = replaceAll(insertQuery,", )"," ) ");
-                    insertQuery += ` values (`;
-                    for(let value of Object.values(lead)) {
-    
-                        insertQuery += `"${value}", `
-                    }
-                    insertQuery += `) `
-                    insertQuery = replaceAll(insertQuery, ", )" , " ) ");
-    
-                    await insert(insertQuery);
+                insertQuery += `) `
+                insertQuery = utils.replaceAll(insertQuery,", )"," )");
+                insertQuery += ` values (`;
+                for(let value of Object.values(lead)) {
+                    insertQuery += `"${value}", `
                 }
+                insertQuery += `) `
+                insertQuery = utils.replaceAll(insertQuery, ", )" , " )");
     
-                console.log("\t√ " + " " + recordsToWrite.length + ` records written to [scraperdata].[${outputTable}] (from page ${pagenum})` );
-            } 
-        }
+                mysql.execute(insertQuery,(err,results) => {
+                    if(err){
+                        console.log(err);
+                        process.exit();
+                    }else{
+                        //console.log(results.affectedRows);
+                    }
+                })
+                
+                console.log("\t\t√ " + " " + recordsToWrite.length + ' records written.');
+            }
+
+            
+        } 
+    }
+
+
+
+
+
+    
+
 
     /** stores scraped data from the last search in an object array called ScrapedLeads */
     let requireEmail = false;
@@ -392,77 +374,132 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
         }
     }
 
-    /** attempt the last request again with a different proxy. */
-    function retryRequest() {
-        createRequestOptions(true);
-    } 
+    function pageHasErrors(htmlPage)
+    {
 
-    /**ask what task we are performing. For now, only linkedin is supported. */
-    async function getNextTask(){
-        let url = "http://localhost:8888/task"
-        if(debugging) console.log("getNextTask()");
-        let response = await axios.get(url);
-        if (response.err) {console.log(response.err.code);}
-        else { return response.data};
-        //response.data is a collection of json objects.
+        if(htmlPage.indexOf('400 Bad Request') >= 0)
+        {
+            console.error("\t - Error: -- BAD REQUEST --");
+            return true;
+        }
+
+        if(htmlPage.indexOf('Our systems have detected unusual traffic') >= 0 )
+        {
+            console.error("\t - Error: -- Unusual Traffic --");
+            return true;
+        }
+
+        if(htmlPage.indexOf('<TITLE>302 Moved</TITLE>') >= 0 )
+        {
+            //console.error("\t - Error: -- Document Moved --");
+            return true;
+        }
+
+        if(htmlPage.indexOf('connect: connection refused') >= 0 )
+        {
+            console.error("\t - Error: -- Connection Refused --");
+            return true;
+        }
+
+        if(htmlPage.indexOf(': username/password authentication failed') >= 0) {
+            console.log(htmlPage);
+            console.error("\t - Error: -- Proxy Authentication Failure -- ");
+            return true;
+        }
+
+        if(htmlPage.indexOf(': unknown error connection refused') >= 0) {
+            console.error("\t - Error: -- Unknown error or Connection Refused --");
+            return true;
+        }
+
+        if(htmlPage.indexOf('- non ha prodotto risultati in nessun documento.') >= 0) {
+            console.error("\t - Error: -- No Matching Documents --");
+            //return true;
+        }
+
+        if(htmlPage.indexOf(': EOF') >= 0) {
+            console.error("\t - Error: -- EOF --");
+            return true;
+        }
+
+        if(htmlPage.indexOf('403 Status Forbidden') >= 0) {
+            console.error("\t - Error: -- Forbidden --");
+            // console.error(currentTask.url);
+            // console.log(currentTask);
+            return true;
+        }
+
+        if(htmlPage.indexOf('Proxy Authentication Required') >= 0) {
+            console.log(htmlPage);
+            console.error("\t - Error: -- Proxy Authentication Required --");
+            return true;
+        }
+
+        return false;
     }
 
-        /** request the next search */
-        async function getNextQuery(){
-            let url = "http://localhost:8888/query"
-            if(debugging) console.log("getNextQuery()");
+    /** attempt the last request again with a different proxy. */
+    function retryRequest() {
+        //console.log("\tRetrying...")
+        makeRequest(currentTask,true);
+    } 
+
+    /** request the next search */
+    // async function getNextQuery(){
+    //     let url = "http://localhost:8888/query"
+    //     if(debugging) console.log("getNextQuery()");
+        
+    //     let response = await axios.get(url);
+    //     if (response.err) {
+    //         console.log("\t - Error: -- Axios Response Error in getNextQuery()");
+    //     }
+    //     else { 
+    //         let q = response.data.query;
+    //         try{
+    //             if(q.match(/&numitems=\d{1,3}$/)){
+    //                 pagesize = q.match(/\d{1,3}/)
+    //             }
+    //         }catch(e) {
+
+    //         }
             
-            let response = await axios.get(url);
-            if (response.err) {
-                console.log("\t - Error: -- Axios Response Error in getNextQuery()");
-            }
-            else { 
-                let q = response.data.query;
-                try{
-                    if(q.match(/&numitems=\d{1,3}$/)){
-                        pagesize = q.match(/\d{1,3}/)
-                    }
-                }catch(e) {
+    //         nextUrl = q;
 
-                }
-                
-                nextUrl = q;
+    //         return q;
+    //     };
+    // }
 
-                return q;
-            };
+    /**returns next "proxyhost:port" from the server.
+    * ex: proxy6.infatica.com:2309 */
+    async function getNextProxy(){
+        let url = "http://localhost:8888/proxy"
+        //if(debugging) console.log("getNextProxy()");
+        
+        let response;
+        try {
+            response = await axios.get(url);
+        } catch(e) {
+            console.log('\t->\tError thrown from response in getNextProxy()\t<-');
         }
-
-        /**returns next "proxyhost:port" from the server.
-        * ex: proxy6.infatica.com:2309 */
-        async function getNextProxy(){
-            let url = "http://localhost:8888/proxy"
-            if(debugging) console.log("getNextProxy()");
-            
-            let response = await axios.get(url);
-            if (response.err) {console.log(response.err.code);}
-            else { return response.data.proxy};
+        if (response.err) {
+            console.log('\t->\tError in getNextProxy()\t<-');
+            console.log(response.err.error.message);
+            //console.log(response.err.code);
         }
+        else {
+            let retval = response.data.proxy;
+            if(debugging) console.log("\t" + retval); 
+            return response.data.proxy
+        };
+    }
 
-        async function getNextAgent(){
-            let url = "http://localhost:8888/agent"
-            if(debugging) console.log("getNextAgent()");
-            let response = await axios.get(url);
-            if (response.err) {console.log(response.err.code);}
-            else { return response.data.agent};
-        }
-
-        async function getOutputTable(){
-            let url = "http://localhost:8888/output"
-            let response = await axios.get(url);
-            if (response.err) {console.log(response.err.code);}
-            else { return response.data.message};
-        }
+    async function getOutputTable(){
+        return "`scraperdata`.`output`"
+    }
 
 
 
 
-
-    
 
 
 
@@ -475,7 +512,8 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
          if (noResultsImage.length > 0){
              console.error("\t - Error: -- No matches --")
              pagenum = 1;
-             createRequestOptions();
+             let newtask = await getNextTask(__function,__line);
+             makeRequest(newtask);
              return;
          }
  
@@ -505,7 +543,8 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
              }
          }
 
-         returnData(scrapedleads)
+         //returnData(scrapedleads)
+         writeData(scrapedleads);
          //createRequestOptions();
  
          return;
@@ -577,8 +616,9 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
             "email":email
         }
 
+        //returnData(data);
         writeData([data]);
-        createRequestOptions();
+        //createRequestOptions();
     }
 
     async function parseETHZurichDirectory(html) {
@@ -611,14 +651,202 @@ eval(fs.readFileSync('c:/users/michael/documents/sourcecode/data/DataTools.js')+
             console.log(dataitem);
         }
 
+        //returnData(data)
         writeData(data);
-        createRequestOptions(true,false,true);
+        //createRequestOptions(true,false,true);
     }
 
-    function findEmailOnPage(html) {
-        let mailRegex = /^[A-Za-z0-9_!#$%&'*+\/=?`{|}~^.-]+@[A-Za-z0-9.-]+$/gm
-        return String(html).match(mailRegex);
+        /** returns an array of html divs containing google result items */
+        function getGoogleRows(html){
+            let $ = cheerio.load(html);
+    
+            let GoogleResultsDiv = $("div#main");
+            console.log("results div:" + GoogleResultsDiv.length);
+            //let ResultsMarkup = $(GoogleResultsDiv).find("div.MjjYud")
+            //let resultRows = $(ResultsMarkup).find("div.kvH3mc.BToiNc.UK95Uc")
+            let data = [];
+            let googleRowData = {};
+            let resultRows = $(GoogleResultsDiv).find("div.fP1Qef")
+            console.log(resultRows.length)
+            for(let i = 0; i < resultRows.length; i++){
+                googleRowData = {};
+                let thisrow = $(resultRows[i]);
+                //$("div.sCuL3").innerText
+                //console.log(Object.keys(thisrow));
+                googleRowData.header = $(thisrow).find("div.sCuL3").innerText
+                googleRowData.link = $(thisrow).find("div.egMi0 a").href;
+                googleRowData.linkText = $(thisrow).find("div.egMi0 a h3").textContent;
+                googleRowData.blurb = $(thisrow).find("div.BNeawe.s3v9rd.AP7Wnd div.BNeawe.s3v9rd.AP7Wnd").textContent
+                data.push(googleRowData);
+            }
+    
+            if(debugging) console.log("Google Rows")
+            if(debugging) console.log(googleRowData)
+    
+            if(resultRows.length > 0)
+                return resultRows
+            else
+                return []
+        }
+    
+        /** Returns an array of JSON objects containing google result items. */
+        function getGoogleResults(html) {
+            let $=cheerio.load(html);
+            let data = [];
+            //let rows = getGoogleRows(html);
+            let rows = $("div.fP1Qef")
+            //let $ = cheerio.load(rows);
+            for(let i = 0; i < rows.length; i++){
+                let googleRowData = {};
+                let thisrow = $(rows[i]);
+                //$("div.sCuL3").innerText
+                //console.log(Object.keys(thisrow));
+                googleRowData.header =thisrow.find("div.egMi0 div.j039Wc").text()
+                
+                let link = thisrow.find("div.egMi0.kCrYT a").attr("href")
+                link = link.replace("/url?q=","")
+                link = link.substring(0,link.indexOf("&"))
+                googleRowData.link = link;
+    
+    
+                googleRowData.linkText = thisrow.find("div.egMi0 a h3").text();
+                
+                googleRowData.blurb = thisrow.find("div.BNeawe.s3v9rd.AP7Wnd div.BNeawe.s3v9rd.AP7Wnd").text()
+                
+                data.push(googleRowData);
+            }
+    
+            //console.log("Results Found:" + data.length)
+    
+            if(data.length > 0){
+                //console.log(data.length + " / " + rows.length)
+                return data
+            } else {
+                return []
+            }
+                
+        }
+    
+        function findEmailOnPage(html) {
+            let mailRegex = /^[A-Za-z0-9_!#$%&'*+\/=?`{|}~^.-]+@[A-Za-z0-9.-]+$/gm
+            let matches = String(html).match(mailRegex);
+            return matches;
+        }
+    
+    
+        function findLinkedIn(html) {
+            if(debugging) console.log(__function,__line)
+            let tName = RegExp(currentTask.name);
+            let tCompany = RegExp(currentTask.company);
+            let LinkedIn = myRegex.linkedin.profile.regex
+    
+            let rows = getGoogleResults(html);
+            let retval = "N / A";
+            for(let i =0; i < rows.length; i++ ) {
+                searchResult = rows[i];
+                
+                // Is this result a linkedIn link?  If not, we can skip it.
+                //console.log(searchResult);
+                let linkedInMatches = searchResult.link.match(LinkedIn)
+                if(!linkedInMatches) continue;
+    
+                //Does the name on the linked account match the name is our current task?
+                let nameMatches = searchResult.linkText.match(tName)
+                if(!nameMatches) continue;
+    
+                //Does the company in the current task appear in this search result?
+                let companyMatchesLinkText = String(searchResult.linkText).match(tCompany);
+                let companyMatchesBlurb = String(searchResult.blurb).match(tCompany)
+                
+                if(!companyMatchesLinkText && !companyMatchesBlurb) {
+                    continue;
+                } else {
+                    retval = searchResult.link;
+                    console.log("\t\t√ - LinkedIn page identified.")
+                    break;
+                }
+            }
+            //console.log(retval);
+            return retval;
+        }
+    
+        function findTwitter(html){
+            if(debugging) console.log(__function,__line);
+            let tName = RegExp(currentTask.name)
+            let tCompany = RegExp(currentTask.company);
+            let Twitter = myRegex.twitter.user.regex;
+    
+            let rows = getGoogleResults(html);
+            let retval = "N/A"
+            for(let i = 0; i < rows.length; i++ ) {
+                let searchResult = rows[i];
+    
+                // Is this result a twitter link?  If not, we can skip it.
+                let twittermatches = searchResult.link.match(Twitter);
+                if(!twittermatches) continue;
+    
+                //Does the name on the twitter account match the name is our current task?
+                let nameMatches = searchResult.linkText.match(tName)
+                if(!nameMatches){
+                    continue;
+                } else {
+                    retval = searchResult.link;
+                    console.log("\t\t√ - Twitter page identified.")
+                    break;
+                }
+            }
+    
+            return retval;
+    
+        }
 
-    }
 })();
 
+
+/(?:https?:)?\/\/(?:[A-z]+\.)?twitter\.com\/@?(?!home|share|privacy|tos)([A-z0-9_]+)\/?/
+
+// async function getNextAgent(){
+//     let url = "http://localhost:8888/agent"
+//     //if(debugging) console.log("getNextAgent()");
+//     let response = await axios.get(url);
+//     if (response.err) {console.log(response.err.code);}
+//     else { return response.data.agent};
+// }
+
+let nextAgentIndex =0;
+function getNextAgent() {
+    //nextAgentIndex = 1;
+    let agent = AGENT_LIST[nextAgentIndex];
+    nextAgentIndex++;
+    if(nextAgentIndex >= (AGENT_LIST.length -1)) {
+      nextAgentIndex = 0;
+    }
+    return agent;
+  }
+
+  const AGENT_LIST = ["Windows 10/ Edge browser: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246"   ,
+  "Windows 7/ Chrome browser: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36",
+  "Linux PC/Firefox browser: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:15.0) Gecko/20100101 Firefox/15.0.1",
+  "Chrome OS/Chrome browser: Mozilla/5.0 (X11; CrOS x86_64 8172.45.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.64 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.19582",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.19577",
+  "Mozilla/5.0 (X11) AppleWebKit/62.41 (KHTML, like Gecko) Edge/17.10859 Safari/452.6",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML like Gecko) Chrome/51.0.2704.79 Safari/537.36 Edge/14.14931",
+  "Chrome (AppleWebKit/537.1; Chrome50.0; Windows NT 6.3) AppleWebKit/537.36 (KHTML like Gecko) Chrome/51.0.2704.79 Safari/537.36 Edge/14.14393",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36",
+  "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2919.83 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2866.71 Safari/537.36",
+  "Mozilla/5.0 (X11; Ubuntu; Linux i686 on x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2820.59 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2762.73 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2656.18 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML like Gecko) Chrome/44.0.2403.155 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.1 Safari/537.36",
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:101.0) Gecko/20100101 Firefox/101.0",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:99.0) Gecko/20100101 Firefox/99.0",
+  "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:77.0) Gecko/20190101 Firefox/77.0"];
+
+//let facebookRegex = /(?:https?:\/\/)?(?:www\.)?(mbasic.facebook|m\.facebook|facebook|fb)\.(com|me)\/(?:(?:\w\.)*#!\/)?(?:pages\/)?(?:[\w\-\.]*\/)*([\w\-\.]*)/ig
